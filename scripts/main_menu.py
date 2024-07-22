@@ -1,7 +1,8 @@
-import pygame, os, sys
-from scripts.button import *
-from scripts.fonts_and_colors import *
-from scripts.useful_functions import *
+import pygame as pg
+from .button import *
+from .consts import *
+from .util import *
+from .settings import settings
 
 def main_menu(surface, game):
     option = 0
@@ -9,17 +10,17 @@ def main_menu(surface, game):
     version = '1.5'
     selected = False
 
-    b1_r = pygame.Rect(100, CY, 400, 200)
-    b1_s = pygame.Surface((b1_r.width, b1_r.height))
+    b1_r = pg.Rect(100, CY, 400, 200)
+    b1_s = pg.Surface((b1_r.width, b1_r.height))
 
-    b2_r = pygame.Rect(W-500, CY, 400, 200)
-    b2_s = pygame.Surface((b1_r.width, b1_r.height))
+    b2_r = pg.Rect(W-500, CY, 400, 200)
+    b2_s = pg.Surface((b1_r.width, b1_r.height))
 
-    pygame.mouse.set_visible(True)
+    pg.mouse.set_visible(True)
 
     while not selected:
         clock.tick(60)
-        pos = pygame.mouse.get_pos()
+        pos = pg.mouse.get_pos()
         surface.fill((0, 0, 80))
 
         settings_b.draw(surface)
@@ -30,24 +31,24 @@ def main_menu(surface, game):
         surface.blit(b1_s, b1_r)
         surface.blit(b2_s, b2_r)
 
-        mts(surface, True, 60, '1 Player', WHITE, b1_r.centerx, b1_r.centery)
-        mts(surface, True, 60, '2 Player', WHITE, b2_r.centerx, b2_r.centery)
+        draw_text(surface, True, 60, '1 Player', WHITE, b1_r.centerx, b1_r.centery)
+        draw_text(surface, True, 60, '2 Player', WHITE, b2_r.centerx, b2_r.centery)
 
-        mts(surface, True, 100, text1, WHITE, surface.get_width() // 2, 150)
+        draw_text(surface, True, 100, text1, WHITE, surface.get_width() // 2, 150)
 
-        mts(surface, False, 30, f'version: {version}', WHITE, 30, H-60)
+        draw_text(surface, False, 30, f'version: {version}', WHITE, 30, H-60)
 
-        pygame.display.update()
+        pg.display.update()
 
-        for event in pygame.event.get():
+        for event in pg.event.get():
 
-            if event.type == pygame.QUIT: selected = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE: selected = True
-                if event.key == pygame.K_1: option = 1; selected = True
-                if event.key == pygame.K_2: option = 2; selected = True
+            if event.type == pg.QUIT: selected = True
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE: selected = True
+                if event.key == pg.K_1: option = 1; selected = True
+                if event.key == pg.K_2: option = 2; selected = True
 
-            if event.type == pygame.MOUSEBUTTONUP:
+            if event.type == pg.MOUSEBUTTONUP:
                 if b1_r.collidepoint(pos): option = 1; selected = True
                 if b2_r.collidepoint(pos): option = 2; selected = True
                 if settings_b.rect.collidepoint(pos): settings(surface, game)
@@ -56,5 +57,5 @@ def main_menu(surface, game):
     game.players = option
     fade(surface)
 
-    pygame.mouse.set_visible(False)
+    pg.mouse.set_visible(False)
 

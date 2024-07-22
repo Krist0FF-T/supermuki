@@ -1,19 +1,10 @@
 import pygame, sys
 
 from scripts.button import *
-from scripts.useful_functions import *
-from scripts.fonts_and_colors import *
+from scripts.util import *
+from scripts.consts import *
 
 clock = pygame.time.Clock()
-
-def mts(surface, rect, size, smthing, color, x, y):
-    text = font(size).render(smthing, 1, color)
-    if rect:
-        text_rect = text.get_rect(center = (x, y))
-        surface.blit((text), text_rect)
-    elif not rect:
-        surface.blit(text, (x, y))
-    return text
 
 def button(surf, boolean, text, y):
     b_r = pygame.Rect(20, y, 30, 30)
@@ -22,7 +13,7 @@ def button(surf, boolean, text, y):
     else: b_s.fill((100,100,100))
     surf.blit(b_s, b_r)
     
-    mts(surf, False, 30, text, WHITE, 20+40, y)
+    draw_text(surf, False, 30, text, WHITE, 20+40, y)
 
     return b_r
 
