@@ -6,32 +6,13 @@ from math import atan2, sin, cos
 from .consts import *
 from .assets import asset_manager
 
+
 def palette_swap(surf, old_c, new_c):
     img_copy = surf.copy()
     img_copy.fill(new_c)
     surf.set_colorkey(old_c)
     img_copy.blit(surf, (0, 0))
     return img_copy
-
-
-def fade(surface, color=BLACK):
-    fade = pg.Surface((W, H))
-    fade.fill(color)
-    for alpha in range(63):
-        fade.set_alpha(alpha*4)
-        surface.blit(fade, (0, 0))
-        pg.display.update()
-        pg.time.wait(4)
-
-
-def long_fade(surface):
-    fade = pg.Surface((W, H))
-    fade.fill((0, 0, 0))
-    for alpha in range(63):
-        fade.set_alpha(alpha*4)
-        surface.blit(fade, (0, 0))
-        pg.display.update()
-        pg.time.wait(40)
 
 
 def draw_text(surface, centered, size, smthing, color, x, y):
@@ -69,18 +50,6 @@ def draw_image(surface, img, scalex, scaley, px, centered, x, y):
     return img
 
 
-def blurfade(surf):
-    res = [[1280, 720], [640, 360], [320, 180],
-           [160, 90], [80, 45], [40, 22], [20, 11]]
-    copy = surf.copy()
-    for i in range(len(res)):
-        e = pg.transform.scale(copy, (res[i][0], res[i][1]))
-        e = pg.transform.scale(e, (W, H))
-        surf.blit(e, (0, 0))
-        pg.display.update()
-        pg.time.wait(300)
-
-
 def move_towards_rect(r1, r2, speed):
     radians = atan2(r2.centery - r1.centery, r2.centerx -
                     r1.centerx)  # Y van elol!
@@ -90,16 +59,6 @@ def move_towards_rect(r1, r2, speed):
 
     r1.centerx += dx
     r1.centery += dy
-
-
-def flip(image, boolean):
-    flipped_image = pg.transform.flip(image, boolean, False)
-    return flipped_image
-
-
-def flip_ver(image, boolean):
-    f_img = pg.transform.flip(image, False, boolean)
-    return f_img
 
 
 KSS = 30  # keystroke size

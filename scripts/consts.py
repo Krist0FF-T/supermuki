@@ -7,7 +7,7 @@ COL = 44
 ROW = 12
 W, H = (1280, 720)
 CX, CY = (W//2, H//2)
-FPS = 61
+FPS = 60
 clock = pg.time.Clock()
 
 WHITE = (255, 255, 255)
