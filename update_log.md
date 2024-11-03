@@ -15,12 +15,12 @@
 - parallax background
 - added checkpoints
 
-# 2024-07-21:
+# 2024-07-21
 - upload code to GitHub ([link](https://github.com/Krist0FF-T/supermuki))
 - a little cleanup
 - impl asset manager
 
-# 2024-07-22:
+# 2024-07-22
 - yet another cleanup:
     - del fade effect (had to wait too much)
     - del game over screen
@@ -36,4 +36,7 @@
 - when a player dies, the other doesn't need to restart
 - when players are far apart, the moving player is the camera's target
 
+# 2024-11-03
+- small bugfixes
+    - (blocks interacting with dead players)
 
