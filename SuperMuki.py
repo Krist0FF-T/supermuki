@@ -536,6 +536,7 @@ class Player:
 
         if self.rect.bottom > consts.ROW*consts.TS and self.alive:
             self.kill()
+            self.rect.bottom = consts.ROW * consts.TS
 
         if self.rect.top > consts.ROW*consts.TS and not self.alive:
             self.respawn()
@@ -550,12 +551,12 @@ class Player:
         dx = 0
         dy = 0
 
-        if left and not right:
+        if self.alive and left and not right:
             cam.preferred = self
             dx = -self.speed
             self.direction = -1
 
-        if right and not left:
+        if self.alive and right and not left:
             cam.preferred = self
             dx = self.speed
             self.direction = 1
@@ -563,6 +564,7 @@ class Player:
         if self.jump and (fly or self.atj):
             self.vel_y = -10
             self.rotating = True
+            # print("e")
             self.jump = False
 
         if left or right and self.atj:
@@ -576,6 +578,7 @@ class Player:
 
         if (self.rotating and settings_obj.flip_when_jump) or not self.alive:
             self.rotation -= 15
+            # print("rotating")
             if abs(self.rotation) > 355:
                 self.rotation = 0
                 self.rotating = False
@@ -633,7 +636,7 @@ class Player:
                     if block[0].bottom < self.rect.bottom:
                         self.vel_y = 0
                         dy = block[0].bottom - self.rect.top
-                        if self.atj:
+                        if self.atj and self.alive:
                             self.kill()
 
                     else:
@@ -659,6 +662,9 @@ class Player:
             self.vel_y += consts.GRAVITY
 
     def kill(self):
+        if not self.alive:
+            return
+
         asset_manager.get_sound("enemy_hit.wav").play()
         self.alive = False
         self.vel_y = -12
@@ -1033,21 +1039,22 @@ def update_block(block):
 
     elif block[2] == "trampoline":
         for p in players:
-            if p.vel_y > 1:
-                p_rect = pg.Rect(
-                    p.rect.x, p.rect.y + p.vel_y,
-                    p.rect.width, p.rect.height
-                )
+            if not p.alive or p.vel_y < 1:
+                continue
 
-                block_hitbox = pg.Rect(
-                    block[0].x, block[0].y + (consts.TS * 0.4),
-                    block[0].width, block[0].height - (consts.TS * 0.4)
-                )
+            p_rect = pg.Rect(
+                p.rect.x, p.rect.y + p.vel_y,
+                p.rect.width, p.rect.height
+            )
 
-                if p_rect.colliderect(block_hitbox):
-                    p.vel_y = consts.TRAMPOLINE_VEL
-                    asset_manager.get_sound("trampoline.wav").play()
+            block_hitbox = pg.Rect(
+                block[0].x, block[0].y + (consts.TS * 0.4),
+                block[0].width, block[0].height - (consts.TS * 0.4)
+            )
 
+            if p_rect.colliderect(block_hitbox):
+                p.vel_y = consts.TRAMPOLINE_VEL
+                asset_manager.get_sound("trampoline.wav").play()
                 p.rotating = True
 
     elif block[2] == "checkpoint":
@@ -1057,7 +1064,8 @@ def update_block(block):
                     asset_manager.get_sound("checkpoint.wav").play()
                     block[3]["status"] = "active"
                     for player in players:
-                        player.rpp = block[0].x, block[0].y
+                        if player.alive:
+                            player.rpp = block[0].x, block[0].y
 
     elif block[2] == "box":
         block[3]["vel_y"] += consts.GRAVITY
@@ -1090,7 +1098,7 @@ def update_block(block):
                 block[0].x, block[0].y + block[3]["vel_y"],
                 consts.TS, consts.TS
             )
-            if p.rect.colliderect(rect) and block[3]["vel_y"] > 2:
+            if p.alive and p.rect.colliderect(rect) and block[3]["vel_y"] > 2:
                 block[3]["vel_y"] = -6
                 p.kill()
 
@@ -1120,16 +1128,20 @@ def update_block(block):
 
     elif block[2] == "spike":
         for p in players:
-            if p.vel_y >= 2:
-                if p.velrect().colliderect(
-                        block[0].x, block[0].y +
-                            (block[0].height /
-                             2), block[0].width, block[0].height / 2
-                ):
-                    p.kill()
-                    # p.deaths += 1
-                    # p.explode()
-                    # game_over(f"P{p.num} jumped into a spike")
+            if not p.alive or p.vel_y < 2:
+                continue
+
+            br = block[0]
+            if p.velrect().colliderect(
+                br.x,
+                br.y + (br.height / 2),
+                br.width,
+                br.height / 2
+            ):
+                p.kill()
+                # p.deaths += 1
+                # p.explode()
+                # game_over(f"P{p.num} jumped into a spike")
 
 
 def draw_players():
@@ -1150,7 +1162,7 @@ def player_updates():
 def update_lasers():
     for laser in lasers:
         for player in players:
-            if player.rect.clipline(laser) and player.alive:
+            if player.alive and player.rect.clipline(laser):
                 player.kill()
                 # p.alive = False
                 # p.explode()

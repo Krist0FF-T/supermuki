@@ -75,7 +75,7 @@ def draw_keystroke(surf, key, x, y, text):
     else:
         pg.draw.rect(surf, KSU_C, rect)
     draw_text(surf, True, int(KSS/2), text, WHITE, rect.centerx,
-        rect.centery + 7 if text == '^' else rect.centery)
+              rect.centery + 7 if text == '^' else rect.centery)
 
 
 def keystrokes(surf, tipus):
@@ -105,5 +105,3 @@ def screenshot():
         file = f'screenshots/{date}_{ss_id}.png'
 
     pg.image.save(ss_s, file)
-
-
