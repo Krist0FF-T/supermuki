@@ -759,8 +759,7 @@ if not g.devmode:
 
 player1 = Player(1)
 player2 = Player(2)
-players: list[Player] = []
-players.append(player1)
+players = [player1]
 if game.players == 2:
     players.append(player2)
 
@@ -802,9 +801,8 @@ def addBgBlock(x, y, name):
 def addBlock(x, y, name, properties={}):
     img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()
 
-    w, h = 1, 1
-    if name == "moving":
-        w = 2
+    h = 1
+    w = 2 if name == "moving" else 1
 
     image = pg.transform.scale(img, (consts.TS*w, consts.TS*h))
 
@@ -812,6 +810,7 @@ def addBlock(x, y, name, properties={}):
     rect.topleft = x*consts.TS, y*consts.TS
     block = [rect, image, name, properties]
     blocks.append(block)
+
     if name in solid_blocks or name in ["moving", "falling", "box"]:
         collideblocks.append(block)
 
@@ -821,119 +820,128 @@ def loadlevel(num, reload=False):
         for p in players:
             p.rect.topleft = p.rpp
 
-    if g.leveltest or g.level < g.num_of_levels + 1:
-        blocks.clear()
-        bullets.clear()
-        collideblocks.clear()
-        if not reload:
-            bg_blocks.clear()
-        fileName = f"assets/levels/{num}.txt"
-
-        try:
-            with open(fileName, "r") as f:
-                tilemap = f.readlines()
-        except Exception:
-            loadlevel(1, reload)
-            return
-
-        lasers.clear()
-
-        # place blocks
-        for i, row in enumerate(tilemap):
-            for j, col in enumerate(row):
-                if col == ".":
-                    continue
-
-                if col == "P":
-                    if not reload:
-                        game.stop_player_move = True
-                        for p in players:
-                            p.rpp = j*consts.TS, i*consts.TS
-                            p.rect.topleft = p.rpp
-
-                elif col == "B":
-                    addBlock(j, i, "box", {"vel_y": 0, "dx": 0})
-                elif col == "G":
-                    addBlock(j, i, "flag")
-                elif col == "S":
-                    addBlock(j, i, "spike")
-                elif col == "T":
-                    addBlock(j, i, "trampoline")
-                elif col == "m":
-                    addBlock(j, i, "moving",  {"speed": 3, "direction": 1})
-                elif col == "e":
-                    addBlock(j, i, "enemy",   {
-                        "speed": 3, "direction": 1, "cd": 0, "frame_index": 0})
-                elif col == "s":
-                    addBlock(j, i, "shooter", {"cooldown": 12})
-
-                elif col == "a":
-                    addBlock(j, i, "aimbot", {"cd": 12, "d": [1, 1]})
-
-                elif col == "-":
-                    lasers.append([[j*consts.TS, i*consts.TS+30],
-                                  [(j+1)*consts.TS, i*consts.TS+30]])
-
-                elif col == "g":
-                    addBlock(j, i, "grass")
-                    if not reload:
-                        if i > 0 and tilemap[i-1][j] == ".":
-                            rn = random.random()
-                            if rn < 0.1:
-                                addBgBlock(j, i-1,   "grass")
-                            elif rn < 0.2:
-                                addBgBlock(j, i-1, "flower")
-                            # elif rn < 0.3:
-                            #     addBgBlock(j, i-1, "smiley")
-
-                elif col == "d":
-                    addBlock(j, i, "dirt")
-                elif col == "f":
-                    addBlock(j, i, "falling", {
-                        "vel_y": 0,
-                        "state": "fly",
-                        "pos": i*consts.TS,
-                        "cd": 0
-                    })
-                elif col == "c":
-                    addBlock(j, i, "checkpoint", {"status": "inactive"})
-
-    else:
+    if not g.leveltest or g.level < g.num_of_levels + 1:
         victory()
+        return
+
+    blocks.clear()
+    bullets.clear()
+    collideblocks.clear()
+    if not reload:
+        bg_blocks.clear()
+    fileName = f"assets/levels/{num}.txt"
+
+    try:
+        with open(fileName, "r") as f:
+            tilemap = f.readlines()
+    except Exception:
+        loadlevel(1, reload)
+        return
+
+    lasers.clear()
+
+    # place blocks
+    for i, row in enumerate(tilemap):
+        for j, col in enumerate(row):
+            if col == ".":
+                continue
+
+            if col == "P" and not reload:
+                game.stop_player_move = True
+                for p in players:
+                    p.rpp = j*consts.TS, i*consts.TS
+                    p.rect.topleft = p.rpp
+
+            elif col == "B":
+                addBlock(j, i, "box", {"vel_y": 0, "dx": 0})
+            elif col == "G":
+                addBlock(j, i, "flag")
+            elif col == "S":
+                addBlock(j, i, "spike")
+            elif col == "T":
+                addBlock(j, i, "trampoline")
+            elif col == "m":
+                addBlock(j, i, "moving",  {"speed": 3, "direction": 1})
+            elif col == "e":
+                addBlock(j, i, "enemy",   {
+                    "speed": 3, "direction": 1, "cd": 0, "frame_index": 0})
+            elif col == "s":
+                addBlock(j, i, "shooter", {"cooldown": 12})
+
+            elif col == "a":
+                addBlock(j, i, "aimbot", {"cd": 12, "d": [1, 1]})
+
+            elif col == "-":
+                lasers.append([[j*consts.TS, i*consts.TS+30],
+                               [(j+1)*consts.TS, i*consts.TS+30]])
+
+            elif col == "g":
+                addBlock(j, i, "grass")
+                if not reload:
+                    if i > 0 and tilemap[i-1][j] == ".":
+                        rn = random.random()
+                        if rn < 0.1:
+                            addBgBlock(j, i-1,   "grass")
+                        elif rn < 0.2:
+                            addBgBlock(j, i-1, "flower")
+                        # elif rn < 0.3:
+                        #     addBgBlock(j, i-1, "smiley")
+
+            elif col == "d":
+                addBlock(j, i, "dirt")
+            elif col == "f":
+                addBlock(j, i, "falling", {
+                    "vel_y": 0,
+                    "state": "fly",
+                    "pos": i*consts.TS,
+                    "cd": 0
+                })
+            elif col == "c":
+                addBlock(j, i, "checkpoint", {"status": "inactive"})
 
 
 def draw_blocks():
+    def on_screen(x):
+        return -cam.x - 100 < x < -cam.x + 100 + consts.W
+
     for b in blocks:
-        if -cam.x-100 < b[0].centerx < -cam.x+100+consts.W:
-            if b[2] == "enemy":
-                b[3]["cd"] += 1
-                if b[3]["cd"] > 20:
-                    if b[3]["frame_index"] == 0:
-                        b[3]["frame_index"] = 1
-                    else:
-                        b[3]["frame_index"] = 0
+        if not on_screen(b[0].centerx):
+            continue
 
-                    i = b[3]["frame_index"] + 1
-                    img = asset_manager.get_image(f"blocks/enemy/{i}.png")
-                    b[1] = pg.transform.scale(img, (consts.TS, consts.TS))
-                    b[3]["cd"] = 0
+        if b[2] == "enemy":
+            b[3]["cd"] += 1
+            if b[3]["cd"] > 20:
+                if b[3]["frame_index"] == 0:
+                    b[3]["frame_index"] = 1
+                else:
+                    b[3]["frame_index"] = 0
 
-            elif b[2] == "checkpoint":
-                s = b[3]["status"]
-                img = asset_manager.get_image(f"blocks/checkpoint/{s}.png")
+                i = b[3]["frame_index"] + 1
+                img = asset_manager.get_image(f"blocks/enemy/{i}.png")
                 b[1] = pg.transform.scale(img, (consts.TS, consts.TS))
+                b[3]["cd"] = 0
 
-            # elif b[2] == "aimbot":
-            #     pg.draw.circle(
-            #         screen, BLUE, (b[0].centerx+cam.x, b[0].centery), 500, 5
-            #     )
+        elif b[2] == "checkpoint":
+            s = b[3]["status"]
+            img = asset_manager.get_image(f"blocks/checkpoint/{s}.png")
+            b[1] = pg.transform.scale(img, (consts.TS, consts.TS))
 
-            screen.blit(b[1], (b[0][0] + cam.x, b[0][1]+cam.y))
+        # elif b[2] == "aimbot":
+        #     pg.draw.circle(
+        #         screen, BLUE, (b[0].centerx+cam.x, b[0].centery), 500, 5
+        #     )
+
+        screen.blit(b[1], (b[0][0] + cam.x, b[0][1]+cam.y))
 
     for bg_b in bg_blocks:
-        if -cam.x-100 < bg_b[0].centerx < -cam.x+100+consts.W:
-            screen.blit(bg_b[1], (bg_b[0][0] + cam.x, bg_b[0]
-                        [1]+cam.y), special_flags=pg.BLEND_ALPHA_SDL2)
+        if not on_screen(bg_b[0].centerx):
+            continue
+
+        screen.blit(
+            bg_b[1],
+            (bg_b[0][0] + cam.x, bg_b[0][1]+cam.y),
+            special_flags=pg.BLEND_ALPHA_SDL2
+        )
 
 
 def update_blocks():
@@ -946,23 +954,25 @@ def update_blocks():
 
 
 def update_block(block):
+    br = block[0]
     if block[2] in moving_blocks:
         atm = False
         block[0].x += block[3]["speed"] * block[3]["direction"]
         for s_block in blocks:
-            if s_block != block and s_block[2] != "falling":
-                if any([
-                    s_block[2] in solid_blocks,
-                    s_block[2] in ["enemy", "moving"]
-                ]):
-                    if block[0].colliderect(s_block[0]):
-                        block[3]["direction"] *= -1
+            if (s_block == block
+                or s_block[2] == "falling"
+                or s_block not in solid_blocks + ["enemy", "moving"]
+                ):
+                continue
 
-                    if block[2] == "enemy":
-                        point = block[0].centerx+20 * \
-                            block[3]["direction"], block[0].bottom+10
-                        if s_block[0].collidepoint(point):
-                            atm = True
+            if block[0].colliderect(s_block[0]):
+                block[3]["direction"] *= -1
+
+            if block[2] == "enemy":
+                point = block[0].centerx+20 * \
+                    block[3]["direction"], block[0].bottom+10
+                if s_block[0].collidepoint(point):
+                    atm = True
 
         if block[2] == "enemy":
             if not atm:
@@ -983,10 +993,10 @@ def update_block(block):
     elif block[2] == "shooter":
         block[3]["cooldown"] -= 1
 
-        if all([
-            block[3]["cooldown"] <= 0,
+        if (
+            block[3]["cooldown"] <= 0 and
             (-cam.x-100 < block[0].centerx < -cam.x+100+consts.W)
-        ]):
+        ):
             bullets.append([[block[0].centerx, block[0].centery],  1, 0])
             bullets.append([[block[0].centerx, block[0].centery], -1, 0])
             block[3]["cooldown"] = 120
@@ -994,33 +1004,37 @@ def update_block(block):
 
     elif block[2] == "aimbot":
         block[3]["cd"] -= 1
-        if block[3]["cd"] <= 0:
-            r = block[0]
-            alive_players = [p for p in players if p.alive]
 
-            if not alive_players:
+        if block[3]["cd"] > 0:
+            return
+
+        alive_players = [p for p in players if p.alive]
+
+        if not alive_players:
+            return
+
+        target = choice(alive_players).rect
+        dist = hypot(target.centery-br.centery, target.centerx-br.centerx)
+        if dist > 500:
+            return
+
+        for b in collideblocks:
+            if b[0].clipline(
+                (target.centerx, target.centery),
+                (block[0].centerx, block[0].centery)
+            ):
                 return
 
-            target = choice(alive_players).rect
-            if hypot(target.centery-r.centery, target.centerx-r.centerx) < 500:
+        radians = atan2(
+            br.centery - target.centery,
+            br.centerx - target.centerx
+        )
 
-                lineclip = False
-                for b in collideblocks:
-                    if b[0].clipline(
-                        (target.centerx, target.centery),
-                        (block[0].centerx, block[0].centery)
-                    ):
-                        lineclip = True
+        dx, dy = cos(radians), sin(radians)
 
-                if not lineclip:
-                    radians = atan2(r.centery - target.centery,
-                                    r.centerx - target.centerx)
-
-                    dx, dy = cos(radians), sin(radians)
-
-                    bullets.append([[r.centerx, r.centery], -dx, -dy])
-                    block[3]["cd"] = 70
-                    asset_manager.get_sound("shoot.wav").play()
+        bullets.append([[br.centerx, br.centery], -dx, -dy])
+        block[3]["cd"] = 70
+        asset_manager.get_sound("shoot.wav").play()
 
     elif block[2] == "falling":
         if block[3]["state"] == "fall":
