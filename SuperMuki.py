@@ -51,6 +51,7 @@ class Game:
         self.stop_player_move = False
         self.speedrun = False
         self.t_mval, self.t_sec, self.t_min = 0, 0, 0
+        self.respawn_point = (0.0, 0.0)
 
     def reset_timer(self):
         self.t_mval, self.t_sec, self.t_min = 0, 0, 0
@@ -379,7 +380,7 @@ def victory():
                 for p in players:
                     p.jump = False
                     p.vel_y = 0
-                    p.rect.topleft = p.rpp
+                    p.rect.topleft = game.respawn_point
 
                 victory = False
 
@@ -395,7 +396,7 @@ def victory():
                 p.alive = True
                 p.jump = False
                 p.vel_y = 0
-                p.rect.topleft = p.rpp
+                p.rect.topleft = game.respawn_point
             game.reset_timer()
 
         for event in pg.event.get():
@@ -537,7 +538,6 @@ class Player:
         # - alive
         self.alive = True
         self.deaths = 0
-        self.rpp = (0.0, 0.0)
 
     def update(self):
         self.flip = (self.direction == -1)
@@ -681,7 +681,7 @@ class Player:
         self.alive = True
         self.rotation = 0
         self.vel_y = 0
-        self.rect.topleft = self.rpp
+        self.rect.topleft = game.respawn_point
 
     def velrect(self):
         return pg.Rect(
@@ -824,7 +824,7 @@ def add_block(x, y, name, properties={}):
 def load_level(num, reload=False):
     if reload:
         for p in players:
-            p.rect.topleft = p.rpp
+            p.rect.topleft = game.respawn_point
 
     if not (game.leveltest or game.level < game.num_of_levels + 1):
         victory()
@@ -854,9 +854,9 @@ def load_level(num, reload=False):
 
             if col == "P" and not reload:
                 game.stop_player_move = True
+                game.respawn_point = j*consts.TS, i*consts.TS
                 for p in players:
-                    p.rpp = j*consts.TS, i*consts.TS
-                    p.rect.topleft = p.rpp
+                    p.rect.topleft = game.respawn_point
 
             elif col == "B":
                 add_block(j, i, "box", {"vel_y": 0, "dx": 0})
@@ -1084,7 +1084,7 @@ def update_block(block):
                 p.rotating = True
 
     elif name == "checkpoint":
-        if props["status"] != "inactive":
+        if props["status"] == "active":
             return
 
         for p in players:
@@ -1093,9 +1093,7 @@ def update_block(block):
 
             asset_manager.get_sound("checkpoint.wav").play()
             props["status"] = "active"
-            for player in players:
-                if player.alive:
-                    player.rpp = rect.topleft
+            game.respawn_point = rect.topleft
 
     elif name == "box":
         props["vel_y"] += consts.GRAVITY
