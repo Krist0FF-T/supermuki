@@ -22,14 +22,13 @@ pg.display.set_caption("SuperMuki")
 
 asset_manager.load_player_imgs("player")
 
-fly = False
-
 
 class Settings:
     def __init__(self):
         self.flip_when_jump = True
         self.show_deaths = True
         self.screen_messages = False
+        self.flying = False
 
 
 settings_obj = Settings()
@@ -45,7 +44,7 @@ class Game:
         self.gui_rgb = (0, 0, 80)
         self.num_of_levels = 15
         self.level = 1
-        self.loadlevel_bool = False
+        self.load_level_bool = False
         self.level_selected = False
 
         self.players = 1
@@ -205,7 +204,6 @@ class Game:
 
 
 game = Game()
-g = game
 
 
 def pause(surface=screen, g=game):
@@ -273,7 +271,7 @@ def pause(surface=screen, g=game):
                 if button.settings_b.rect.collidepoint(pos):
                     settings(surface, game)
                 if button.load_lvl_b.rect.collidepoint(pos):
-                    g.loadlevel_bool = True
+                    g.load_level_bool = True
                     paused = False
                 if button.color_s_b.rect.collidepoint(pos):
                     g.color_selection()
@@ -297,9 +295,9 @@ def pause(surface=screen, g=game):
         level_selection(screen, game)
 
         if game.level_selected:
-            loadlevel(game.level)
+            load_level(game.level)
         else:
-            loadlevel(1)
+            load_level(1)
     else:
         pg.mouse.set_visible(False)
 
@@ -348,8 +346,8 @@ def victory():
                        "white", rcl_r.centerx, rcl_r.centery)
 
         if game.speedrun:
-            util.draw_text(screen, True, 40, f"time {g.t_min}:{g.t_sec}.{
-                int(g.t_mval/6.5)}", "white", consts.CX, consts.H-70)
+            util.draw_text(screen, True, 40, f"time {game.t_min}:{game.t_sec}.{
+                int(game.t_mval/6.5)}", "white", consts.CX, consts.H-70)
 
         if confirm_reset:
             screen.fill(game.gui_rgb)
@@ -376,14 +374,16 @@ def victory():
                 game.level_selected = False
                 level_selection(screen, game)
 
-                if game.level_selected:
-                    loadlevel(game.level)
-                else:
-                    loadlevel(1)
+                load_level(
+                    game.level if game.level_selected
+                    else 1
+                )
+
                 for p in players:
                     p.jump = False
                     p.vel_y = 0
                     p.rect.topleft = p.rpp
+
                 victory = False
 
         pg.display.update()
@@ -393,7 +393,7 @@ def victory():
             game.stop_player_move = True
             game.level = 1
             victory = False
-            loadlevel(game.level)
+            load_level(game.level)
             for p in players:
                 p.alive = True
                 p.jump = False
@@ -417,36 +417,47 @@ def victory():
                     settings(screen, game)
                 if rcl_r.collidepoint(pos):
                     confirm_reset = True
+
     pg.mouse.set_visible(False)
 
 
-def stats_display():
-    util.draw_text(screen, False, 30, f"level {g.level}", "white", 15, 15)
+def draw_stats():
+    util.draw_text(screen, False, 30, f"level {game.level}", "white", 15, 15)
 
-    if fly:
+    if settings_obj.flying:
         util.draw_text(screen, True, 20, "fly", "white", consts.CX, 30)
 
     if game.speedrun:
         game.t_mval += 1
+
         if game.t_mval >= consts.FPS:
             game.t_sec += 1
             game.t_mval = 0
+
         if game.t_sec >= 60:
             game.t_min += 1
             game.t_sec = 0
-        util.draw_text(screen, False, 30, f"time {
-            g.t_min}:{g.t_sec}", "white", 15, 70)
+
+        util.draw_text(
+            screen, False, 30,
+            f"time {game.t_min}:{game.t_sec}",
+            "white", 15, 70
+        )
 
     if game.settings.show_deaths:
         util.draw_text(screen, True, 30, "deaths", "white", consts.W - 80, 30)
         if game.players == 1:
-            util.draw_text(screen, True, 30, f"{player1.deaths}",
-                           player1.color, consts.W - 80, 90)
+            util.draw_text(
+                screen, True, 30, f"{player1.deaths}",
+                player1.color, consts.W - 80, 90
+            )
 
         elif game.players == 2:
             for player in players:
-                util.draw_text(screen, True, 30, f"{player.deaths}",
-                               player.color, consts.W-200+(80*player.num), 90)
+                util.draw_text(
+                    screen, True, 30, f"{player.deaths}",
+                    player.color, consts.W-200+(80*player.num), 90
+                )
 
 
 class Camera:
@@ -463,8 +474,9 @@ class Camera:
 
     def update(self):
         if game.players == 2:
-            self.target_x = - \
-                ((player1.rect.centerx + player2.rect.centerx) / 2) + consts.CX
+            self.target_x = - (
+                player1.rect.centerx + player2.rect.centerx
+            ) / 2 + consts.CX
 
             distance = abs(player1.rect.centerx - player2.rect.centerx)
             far_apart = distance > consts.W - 300
@@ -488,6 +500,7 @@ class Camera:
 
         if self.x > 0:
             self.x = 0
+
         if self.x < -4720:
             self.x = -4720
 
@@ -521,7 +534,7 @@ class Player:
         self.direction = 1
 
         # - movement
-        self.speed = player_speed
+        self.speed = consts.PLAYER_SPEED
         self.knockback = 0
         self.jump = False
         self.vel_y = 0
@@ -561,7 +574,7 @@ class Player:
             dx = self.speed
             self.direction = 1
 
-        if self.jump and (fly or self.atj):
+        if self.jump and (settings_obj.flying or self.atj):
             self.vel_y = -10
             self.rotating = True
             # print("e")
@@ -751,9 +764,7 @@ def update_bullets():
                     bullets.remove(b)
 
 
-player_speed = 7
-
-if not g.devmode:
+if not game.devmode:
     # intro(screen)
     main_menu(screen, game)
 
@@ -798,7 +809,7 @@ def addBgBlock(x, y, name):
     bg_blocks.append(bg_block)
 
 
-def addBlock(x, y, name, properties={}):
+def add_block(x, y, name, properties={}):
     img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()
 
     h = 1
@@ -815,12 +826,12 @@ def addBlock(x, y, name, properties={}):
         collideblocks.append(block)
 
 
-def loadlevel(num, reload=False):
+def load_level(num, reload=False):
     if reload:
         for p in players:
             p.rect.topleft = p.rpp
 
-    if not g.leveltest or g.level < g.num_of_levels + 1:
+    if not (game.leveltest or game.level < game.num_of_levels + 1):
         victory()
         return
 
@@ -835,7 +846,7 @@ def loadlevel(num, reload=False):
         with open(fileName, "r") as f:
             tilemap = f.readlines()
     except Exception:
-        loadlevel(1, reload)
+        load_level(1, reload)
         return
 
     lasers.clear()
@@ -853,30 +864,30 @@ def loadlevel(num, reload=False):
                     p.rect.topleft = p.rpp
 
             elif col == "B":
-                addBlock(j, i, "box", {"vel_y": 0, "dx": 0})
+                add_block(j, i, "box", {"vel_y": 0, "dx": 0})
             elif col == "G":
-                addBlock(j, i, "flag")
+                add_block(j, i, "flag")
             elif col == "S":
-                addBlock(j, i, "spike")
+                add_block(j, i, "spike")
             elif col == "T":
-                addBlock(j, i, "trampoline")
+                add_block(j, i, "trampoline")
             elif col == "m":
-                addBlock(j, i, "moving",  {"speed": 3, "direction": 1})
+                add_block(j, i, "moving",  {"speed": 3, "direction": 1})
             elif col == "e":
-                addBlock(j, i, "enemy",   {
+                add_block(j, i, "enemy",   {
                     "speed": 3, "direction": 1, "cd": 0, "frame_index": 0})
             elif col == "s":
-                addBlock(j, i, "shooter", {"cooldown": 12})
+                add_block(j, i, "shooter", {"cooldown": 12})
 
             elif col == "a":
-                addBlock(j, i, "aimbot", {"cd": 12, "d": [1, 1]})
+                add_block(j, i, "aimbot", {"cd": 12, "d": [1, 1]})
 
             elif col == "-":
                 lasers.append([[j*consts.TS, i*consts.TS+30],
                                [(j+1)*consts.TS, i*consts.TS+30]])
 
             elif col == "g":
-                addBlock(j, i, "grass")
+                add_block(j, i, "grass")
                 if not reload:
                     if i > 0 and tilemap[i-1][j] == ".":
                         rn = random.random()
@@ -888,16 +899,16 @@ def loadlevel(num, reload=False):
                         #     addBgBlock(j, i-1, "smiley")
 
             elif col == "d":
-                addBlock(j, i, "dirt")
+                add_block(j, i, "dirt")
             elif col == "f":
-                addBlock(j, i, "falling", {
+                add_block(j, i, "falling", {
                     "vel_y": 0,
                     "state": "fly",
                     "pos": i*consts.TS,
                     "cd": 0
                 })
             elif col == "c":
-                addBlock(j, i, "checkpoint", {"status": "inactive"})
+                add_block(j, i, "checkpoint", {"status": "inactive"})
 
 
 def draw_blocks():
@@ -1121,7 +1132,7 @@ def update_block(block):
         # block[3]["dx"] = 0
 
     elif block[2] == "flag":
-        if g.players == 1:
+        if game.players == 1:
             collision = block[0].colliderect(player1.rect)
 
         else:
@@ -1138,7 +1149,7 @@ def update_block(block):
                     json.dump(data, f)
 
             game.stop_player_move = True
-            loadlevel(game.level)
+            load_level(game.level)
 
     elif block[2] == "spike":
         for p in players:
@@ -1164,7 +1175,7 @@ def draw_players():
         player2.draw()
 
 
-def player_updates():
+def update_players():
     player1.move(left, right)
     player1.update()
 
@@ -1178,11 +1189,6 @@ def update_lasers():
         for player in players:
             if player.alive and player.rect.clipline(laser):
                 player.kill()
-                # p.alive = False
-                # p.explode()
-                # p.deaths += 1
-                # cause = choice(["was cut apart", "can\"t jump big enough"])
-                # game_over(f"P{p.num} {cause}")
 
 
 def draw_lasers():
@@ -1196,24 +1202,9 @@ def draw_lasers():
         )
 
 
-def reDraw():
-    screen.fill(consts.bg_color)
-
-    draw_bg_lines()
-
-    draw_blocks()
-    draw_players()
-    draw_bullets()
-    draw_lasers()
-
-    stats_display()
-
-    pg.display.update()
-
-
 game.color_selection()
 level_selection(screen, game)
-loadlevel(game.level)
+load_level(game.level)
 
 should_pause = False
 run = True
@@ -1221,7 +1212,16 @@ while run:
     if not vsync:
         consts.clock.tick(consts.FPS)
 
-    reDraw()
+    screen.fill(consts.bg_color)
+
+    draw_bg_lines()
+    draw_blocks()
+    draw_players()
+    draw_bullets()
+    draw_lasers()
+    draw_stats()
+
+    pg.display.update()
 
     if game.stop_player_move:
         left,  right = False, False
@@ -1232,7 +1232,7 @@ while run:
             p.knockback = 0
         game.stop_player_move = False
 
-    player_updates()
+    update_players()
     update_lasers()
     update_blocks()
     cam.update()
@@ -1240,13 +1240,13 @@ while run:
 
     if should_pause:
         game.stop_player_move = True
-        game.loadlevel_bool = False
+        game.load_level_bool = False
         pause(screen, game)
-        if game.loadlevel_bool:
+        if game.load_level_bool:
             level_selection(screen, game)
             if game.level_selected:
-                loadlevel(game.level)
-                game.loadlevel_bool = False
+                load_level(game.level)
+                game.load_level_bool = False
         should_pause = False
 
     for event in pg.event.get():
@@ -1255,25 +1255,25 @@ while run:
         if event.type == pg.KEYDOWN:
 
             if event.key == pg.K_k:
-                fly = not fly
+                settings_obj.flying = not settings_obj.flying
 
             if event.key == pg.K_KP_0:
                 p = player2
                 j = p.rect.x/consts.TS
                 i = p.rect.y/consts.TS+1.3
-                addBlock(
+                add_block(
                     p.rect.x/consts.TS,
                     p.rect.y / consts.TS+1,
                     "box",
                     {"vel_y": -20}
                 )
-                addBlock(j, i, "falling", {
+                add_block(j, i, "falling", {
                     "vel_y": 0,
                     "state": "fly",
                     "pos": i*consts.TS,
                     "cd": 0
                 })
-                addBlock(j, i, "enemy", {
+                add_block(j, i, "enemy", {
                     "speed": 1,
                     "direction": 1,
                     "cd": 0,
@@ -1282,7 +1282,7 @@ while run:
 
             if event.key == pg.K_r:
                 reload = not event.mod & pg.KMOD_LSHIFT
-                loadlevel(g.level, reload)
+                load_level(game.level, reload)
 
             if event.key == pg.K_F2:
                 util.screenshot()
