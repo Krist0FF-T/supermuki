@@ -62,9 +62,11 @@ class Game:
 
     def color_selection(self):
         c_s = True
-        lines = [["red", 200, 300, 450],
-                 ["green", 200, 410, 450],
-                 ["blue", 200, 520, 450]]
+        lines = [
+            ["red", 200, 300, 450],
+            ["green", 200, 410, 450],
+            ["blue", 200, 520, 450]
+        ]
 
         if game.players == 2:
             lines.append(["red",   consts.W-450, 300, consts.W-200])
@@ -77,7 +79,6 @@ class Game:
         confirm_r = button.confirm_c.rect
         confirm_s = pg.Surface((confirm_r.width, confirm_r.height))
 
-        pg.mouse.set_visible(True)
         while c_s:
             consts.clock.tick(consts.FPS)
             screen.fill((50, 50, 50))
@@ -206,7 +207,7 @@ class Game:
 game = Game()
 
 
-def pause(surface=screen, g=game):
+def pause():
     # reset_time_b = Button(0, 100, "simple_b2.png", 12)
 
     resume_r = button.resume_button.rect
@@ -216,36 +217,35 @@ def pause(surface=screen, g=game):
     quit_s = pg.Surface((quit_r.width, quit_r.height))
     mm = False  # enter main menu
 
-    pg.mouse.set_visible(True)
     paused = True
     while paused:
         pos = pg.mouse.get_pos()
         consts.clock.tick(consts.FPS)
-        surface.fill(g.gui_rgb)
+        screen.fill(game.gui_rgb)
 
         # draw buttons
-        button.settings_b.draw(surface)
-        button.load_lvl_b.draw(surface)
-        button.color_s_b.draw(surface)
+        button.settings_b.draw(screen)
+        button.load_lvl_b.draw(screen)
+        button.color_s_b.draw(screen)
 
-        button.mainm_b.draw(surface)
+        button.mainm_b.draw(screen)
 
         button.green_button(resume_s, resume_r, pos)
-        surface.blit(resume_s, resume_r)
+        screen.blit(resume_s, resume_r)
 
         button.green_button(quit_s, quit_r, pos)
-        surface.blit(quit_s, quit_r)
+        screen.blit(quit_s, quit_r)
 
         # draw text
-        util.draw_text(surface, True, 100, "Paused!",
+        util.draw_text(screen, True, 100, "Paused!",
                        "white", consts.CX, 150)
         util.draw_text(
-            surface, True, 45, "Resume (C)", "white",
+            screen, True, 45, "Resume (C)", "white",
             button.resume_button.rect.centerx,
             button.resume_button.rect.centery
         )
         util.draw_text(
-            surface, True, 45, "Quit (Q)", "white",
+            screen, True, 45, "Quit (Q)", "white",
             button.quit_button.rect.centerx, button.quit_button.rect.centery
         )
 
@@ -269,12 +269,12 @@ def pause(surface=screen, g=game):
                     pg.quit()
                     sys.exit()
                 if button.settings_b.rect.collidepoint(pos):
-                    settings(surface, game)
+                    settings(screen, game)
                 if button.load_lvl_b.rect.collidepoint(pos):
-                    g.load_level_bool = True
+                    game.load_level_bool = True
                     paused = False
                 if button.color_s_b.rect.collidepoint(pos):
-                    g.color_selection()
+                    game.color_selection()
                 if button.mainm_b.rect.collidepoint(pos):
                     paused = False
                     mm = True
@@ -298,8 +298,6 @@ def pause(surface=screen, g=game):
             load_level(game.level)
         else:
             load_level(1)
-    else:
-        pg.mouse.set_visible(False)
 
 
 def victory():
@@ -307,7 +305,6 @@ def victory():
     restart_r = pg.Rect(consts.CX - 160, consts.CY - 100, 320, 120)
     restart_s = pg.Surface((restart_r.width, restart_r.height))
     restart_game = False
-    pg.mouse.set_visible(True)
 
     rcl_r = pg.Rect(consts.CX - 160, restart_r.bottom+20, 320, 120)
     rcl_s = pg.Surface((rcl_r.width, rcl_r.height))
@@ -409,7 +406,7 @@ def victory():
                 if event.key == pg.K_r:
                     restart_game = True
                 if event.key == pg.K_ESCAPE:
-                    pause(screen, game)
+                    pause()
             if event.type == pg.MOUSEBUTTONUP:
                 if restart_r.collidepoint(pos):
                     restart_game = True
@@ -417,8 +414,6 @@ def victory():
                     settings(screen, game)
                 if rcl_r.collidepoint(pos):
                     confirm_reset = True
-
-    pg.mouse.set_visible(False)
 
 
 def draw_stats():
@@ -965,58 +960,65 @@ def update_blocks():
 
 
 def update_block(block):
-    br = block[0]
-    if block[2] in moving_blocks:
+    rect, _, name, props = block
+    if name in moving_blocks:
+        # can the enemy walk forward (able to move)
         atm = False
-        block[0].x += block[3]["speed"] * block[3]["direction"]
+        rect.x += props["speed"] * props["direction"]
         for s_block in blocks:
-            if (s_block == block
-                or s_block[2] == "falling"
-                or s_block not in solid_blocks + ["enemy", "moving"]
-                ):
+            if (
+                s_block == block or
+                # s_block not in (solid_blocks + ["enemy", "moving"]) or
+                s_block[2] == "falling"
+            ):
                 continue
 
-            if block[0].colliderect(s_block[0]):
-                block[3]["direction"] *= -1
+            if rect.colliderect(s_block[0]):
+                props["direction"] *= -1
 
-            if block[2] == "enemy":
-                point = block[0].centerx+20 * \
-                    block[3]["direction"], block[0].bottom+10
-                if s_block[0].collidepoint(point):
+            if name == "enemy":
+                if s_block[0].collidepoint(
+                    rect.centerx + 20*props["direction"],
+                    rect.bottom + 10
+                ):
+                    print("e")
                     atm = True
 
-        if block[2] == "enemy":
+        if name == "enemy":
             if not atm:
-                block[3]["direction"] *= -1
+                props["direction"] *= -1
+
             for p in players:
-                if p.alive and block[0].colliderect(p.velrect()):
-                    if p.vel_y > 1:
-                        p.vel_y = -10
-                        p.rotating = True
-                        asset_manager.get_sound("enemy_hit.wav").play()
+                if not (p.alive and rect.colliderect(p.velrect)):
+                    continue
 
-                        if block in blocks:
-                            blocks.remove(block)
+                if p.vel_y > 1:
+                    p.vel_y = -10
+                    p.rotating = True
+                    asset_manager.get_sound("enemy_hit.wav").play()
 
-                    else:
-                        p.kill()
+                    if block in blocks:
+                        blocks.remove(block)
 
-    elif block[2] == "shooter":
-        block[3]["cooldown"] -= 1
+                else:
+                    p.kill()
+
+    elif name == "shooter":
+        props["cooldown"] -= 1
 
         if (
-            block[3]["cooldown"] <= 0 and
-            (-cam.x-100 < block[0].centerx < -cam.x+100+consts.W)
+            props["cooldown"] <= 0 and
+            (-cam.x-100 < rect.centerx < -cam.x+100+consts.W)
         ):
-            bullets.append([[block[0].centerx, block[0].centery],  1, 0])
-            bullets.append([[block[0].centerx, block[0].centery], -1, 0])
-            block[3]["cooldown"] = 120
+            bullets.append([rect.center,  1, 0])
+            bullets.append([rect.center, -1, 0])
+            props["cooldown"] = 120
             asset_manager.get_sound("shoot.wav").play()
 
-    elif block[2] == "aimbot":
-        block[3]["cd"] -= 1
+    elif name == "aimbot":
+        props["cd"] -= 1
 
-        if block[3]["cd"] > 0:
+        if props["cd"] > 0:
             return
 
         alive_players = [p for p in players if p.alive]
@@ -1025,44 +1027,43 @@ def update_block(block):
             return
 
         target = choice(alive_players).rect
-        dist = hypot(target.centery-br.centery, target.centerx-br.centerx)
-        if dist > 500:
+        if hypot(
+            target.centerx-rect.centerx,
+            target.centery-rect.centery
+        ) > 500:
             return
 
         for b in collideblocks:
-            if b[0].clipline(
-                (target.centerx, target.centery),
-                (block[0].centerx, block[0].centery)
-            ):
+            if b[0].clipline(target.center, rect.center):
                 return
 
         radians = atan2(
-            br.centery - target.centery,
-            br.centerx - target.centerx
+            rect.centery - target.centery,
+            rect.centerx - target.centerx
         )
 
         dx, dy = cos(radians), sin(radians)
 
-        bullets.append([[br.centerx, br.centery], -dx, -dy])
-        block[3]["cd"] = 70
+        bullets.append([[rect.centerx, rect.centery], -dx, -dy])
+        props["cd"] = 70
         asset_manager.get_sound("shoot.wav").play()
 
-    elif block[2] == "falling":
-        if block[3]["state"] == "fall":
-            if block[3]["cd"] > 0:
-                block[3]["cd"] -= 1
+    elif name == "falling":
+        if props["state"] == "fall":
+            if props["cd"] > 0:
+                props["cd"] -= 1
             else:
-                block[3]["vel_y"] += consts.GRAVITY
-                block[0].y += block[3]["vel_y"]
-                if block[0].y > block[3]["pos"]+1500:
-                    block[3]["state"] = "fly"
+                props["vel_y"] += consts.GRAVITY
+                rect.y += props["vel_y"]
+                if rect.y > props["pos"] + 1500:
+                    props["state"] = "fly"
 
-        elif block[3]["state"] == "fly":
-            block[3]["cd"] = 12
-            block[3]["vel_y"] = 0
-            block[0].y = block[3]["pos"]
+        elif props["state"] == "fly":
+            props["cd"] = 12
+            props["vel_y"] = 0
+            rect.y = props["pos"]
 
-    elif block[2] == "trampoline":
+    elif name == "trampoline":
         for p in players:
             if not p.alive or p.vel_y < 1:
                 continue
@@ -1073,8 +1074,8 @@ def update_block(block):
             )
 
             block_hitbox = pg.Rect(
-                block[0].x, block[0].y + (consts.TS * 0.4),
-                block[0].width, block[0].height - (consts.TS * 0.4)
+                rect.x, rect.y + (consts.TS * 0.4),
+                rect.width, rect.height - (consts.TS * 0.4)
             )
 
             if p_rect.colliderect(block_hitbox):
@@ -1082,29 +1083,33 @@ def update_block(block):
                 asset_manager.get_sound("trampoline.wav").play()
                 p.rotating = True
 
-    elif block[2] == "checkpoint":
-        if block[3]["status"] == "inactive":
-            for p in players:
-                if p.rect.colliderect(block[0]):
-                    asset_manager.get_sound("checkpoint.wav").play()
-                    block[3]["status"] = "active"
-                    for player in players:
-                        if player.alive:
-                            player.rpp = block[0].x, block[0].y
+    elif name == "checkpoint":
+        if props["status"] != "inactive":
+            return
 
-    elif block[2] == "box":
-        block[3]["vel_y"] += consts.GRAVITY
+        for p in players:
+            if not p.rect.colliderect(rect):
+                continue
+
+            asset_manager.get_sound("checkpoint.wav").play()
+            props["status"] = "active"
+            for player in players:
+                if player.alive:
+                    player.rpp = rect.topleft
+
+    elif name == "box":
+        props["vel_y"] += consts.GRAVITY
         for col_b in blocks:
-            if block == col_b:
+            if block == col_b or not col_b[0].colliderect(
+                rect.x,
+                rect.y + props["vel_y"],
+                consts.TS,
+                consts.TS
+            ):
                 continue
 
-            rect = pg.Rect(block[0].x, block[0].y + block[3]
-                           ["vel_y"], consts.TS, consts.TS)
-            if not col_b[0].colliderect(rect):
-                continue
-
-            if col_b[2] == "enemy" and block[3]["vel_y"] > 2:
-                block[3]["vel_y"] = -6
+            if col_b[2] == "enemy" and props["vel_y"] > 2:
+                props["vel_y"] = -6
                 asset_manager.get_sound("enemy_hit.wav").play()
                 if col_b in blocks:
                     blocks.remove(col_b)
@@ -1113,31 +1118,33 @@ def update_block(block):
                 # if col_b[2] == "box":
                 #     block[3]["dx"] == col_b[3]["dx"]
                 #     update_block(col_b)
-                block[3]["vel_y"] = 0
+                props["vel_y"] = 0
 
             elif col_b[2] == "trampoline":
-                block[3]["vel_y"] = consts.TRAMPOLINE_VEL
+                props["vel_y"] = consts.TRAMPOLINE_VEL
 
-        for p in players:
-            rect = pg.Rect(
-                block[0].x, block[0].y + block[3]["vel_y"],
-                consts.TS, consts.TS
-            )
-            if p.alive and p.rect.colliderect(rect) and block[3]["vel_y"] > 2:
-                block[3]["vel_y"] = -6
-                p.kill()
+        for player in players:
+            if not player.alive or props["vel_y"] < 2:
+                continue
 
-        block[0].y += block[3]["vel_y"]
-        block[0].x += block[3]["dx"]
+            if player.rect.colliderect(
+                rect.x,
+                rect.y + props["vel_y"],
+                consts.TS,
+                consts.TS
+            ):
+                props["vel_y"] = -6
+                player.kill()
+
+        rect.y += props["vel_y"]
+        rect.x += props["dx"]
         # block[3]["dx"] = 0
 
-    elif block[2] == "flag":
-        if game.players == 1:
-            collision = block[0].colliderect(player1.rect)
+    elif name == "flag":
+        collision = rect.colliderect(player1.rect)
 
-        else:
-            collision = block[0].colliderect(
-                player1.rect) and block[0].colliderect(player2.rect)
+        if game.players == 2:
+            collision &= rect.colliderect(player2.rect)
 
         if collision:
             asset_manager.get_sound("level_completed.wav").play()
@@ -1151,19 +1158,18 @@ def update_block(block):
             game.stop_player_move = True
             load_level(game.level)
 
-    elif block[2] == "spike":
-        for p in players:
-            if not p.alive or p.vel_y < 2:
+    elif name == "spike":
+        for player in players:
+            if not player.alive or player.vel_y < 2:
                 continue
 
-            br = block[0]
-            if p.velrect().colliderect(
-                br.x,
-                br.y + (br.height / 2),
-                br.width,
-                br.height / 2
+            if player.velrect().colliderect(
+                rect.x,
+                rect.y + (rect.height / 2),
+                rect.width,
+                rect.height / 2
             ):
-                p.kill()
+                player.kill()
                 # p.deaths += 1
                 # p.explode()
                 # game_over(f"P{p.num} jumped into a spike")
@@ -1241,7 +1247,7 @@ while run:
     if should_pause:
         game.stop_player_move = True
         game.load_level_bool = False
-        pause(screen, game)
+        pause()
         if game.load_level_bool:
             level_selection(screen, game)
             if game.level_selected:
@@ -1252,6 +1258,7 @@ while run:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             run = False
+
         if event.type == pg.KEYDOWN:
 
             if event.key == pg.K_k:
