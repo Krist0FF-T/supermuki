@@ -40,3 +40,9 @@
 - small bugfixes
     - (blocks interacting with dead players)
 
+# 2024-11-04
+- avoid too much indentation
+- snake case, better names, other small changes
+- aliases for better readibility in update_block
+- make respawn point global
+
