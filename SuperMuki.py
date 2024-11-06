@@ -58,7 +58,7 @@ class Game:
 
     def reset_deaths(self):
         for player in players:
-            player.alive = True
+            player.respawn()
             player.deaths = 0
 
     def color_selection(self):
@@ -968,7 +968,7 @@ def update_block(block):
         for s_block in blocks:
             if (
                 s_block == block or
-                # s_block not in (solid_blocks + ["enemy", "moving"]) or
+                name not in (solid_blocks + ["enemy", "moving"]) or
                 s_block[2] == "falling"
             ):
                 continue
@@ -981,7 +981,6 @@ def update_block(block):
                     rect.centerx + 20*props["direction"],
                     rect.bottom + 10
                 ):
-                    print("e")
                     atm = True
 
         if name == "enemy":
@@ -989,7 +988,7 @@ def update_block(block):
                 props["direction"] *= -1
 
             for p in players:
-                if not (p.alive and rect.colliderect(p.velrect)):
+                if not (p.alive and rect.colliderect(p.velrect())):
                     continue
 
                 if p.vel_y > 1:
@@ -1010,8 +1009,8 @@ def update_block(block):
             props["cooldown"] <= 0 and
             (-cam.x-100 < rect.centerx < -cam.x+100+consts.W)
         ):
-            bullets.append([rect.center,  1, 0])
-            bullets.append([rect.center, -1, 0])
+            bullets.append([list(rect.center),  1, 0])
+            bullets.append([list(rect.center), -1, 0])
             props["cooldown"] = 120
             asset_manager.get_sound("shoot.wav").play()
 
@@ -1044,7 +1043,7 @@ def update_block(block):
 
         dx, dy = cos(radians), sin(radians)
 
-        bullets.append([[rect.centerx, rect.centery], -dx, -dy])
+        bullets.append([list(rect.center), -dx, -dy])
         props["cd"] = 70
         asset_manager.get_sound("shoot.wav").play()
 
@@ -1211,8 +1210,8 @@ level_selection(screen, game)
 load_level(game.level)
 
 should_pause = False
-run = True
-while run:
+running = True
+while running:
     if not vsync:
         consts.clock.tick(consts.FPS)
 
@@ -1255,7 +1254,7 @@ while run:
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
-            run = False
+            running = False
 
         if event.type == pg.KEYDOWN:
 

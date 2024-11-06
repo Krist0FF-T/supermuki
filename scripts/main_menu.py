@@ -15,8 +15,6 @@ def main_menu(surface, game):
     b2_r = pg.Rect(consts.W-500, consts.CY, 400, 200)
     b2_s = pg.Surface((b1_r.width, b1_r.height))
 
-    pg.mouse.set_visible(True)
-
     while not selected:
         consts.clock.tick(60)
         pos = pg.mouse.get_pos()
@@ -77,5 +75,3 @@ def main_menu(surface, game):
                     settings(surface, game)
 
     game.players = option
-
-    pg.mouse.set_visible(False)

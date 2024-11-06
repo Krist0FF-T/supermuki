@@ -10,8 +10,6 @@ def level_selection(surface, g):
 
     lb_width = 120
 
-    pygame.mouse.set_visible(True)
-
     cd = 10
 
     with open("data.json", "r") as f:
@@ -121,5 +119,3 @@ def level_selection(surface, g):
 
                 if sr_r.collidepoint(pos):
                     g.speedrun = not g.speedrun
-
-    pygame.mouse.set_visible(False)
