@@ -11,11 +11,10 @@ from scripts.main_menu import main_menu
 from scripts import consts, button, util
 from scripts.assets import asset_manager
 
-with open("data.json", "r") as f:
-    data = json.load(f)
-
-fullscreen = data["auto_fullscreen"]
-vsync = data["vsync"]
+with open("config.json", "r") as f:
+    config = json.load(f)
+    fullscreen = config["auto_fullscreen"]
+    vsync = config["vsync"]
 
 screen = pg.display.set_mode((consts.W, consts.H), vsync=vsync)
 pg.display.set_caption("SuperMuki")
@@ -42,15 +41,13 @@ class Game:
 
         self.settings = settings_obj
         self.gui_rgb = (0, 0, 80)
-        self.num_of_levels = 15
+        self.num_of_levels = 10
         self.level = 1
         self.load_level_bool = False
         self.level_selected = False
 
         self.players = 1
         self.stop_player_move = False
-        self.speedrun = False
-        self.t_mval, self.t_sec, self.t_min = 0, 0, 0
         self.respawn_point = (0.0, 0.0)
 
     def reset_timer(self):
@@ -301,144 +298,11 @@ def pause():
             load_level(1)
 
 
-def victory():
-    victory = True
-    restart_r = pg.Rect(consts.CX - 160, consts.CY - 100, 320, 120)
-    restart_s = pg.Surface((restart_r.width, restart_r.height))
-    restart_game = False
-
-    rcl_r = pg.Rect(consts.CX - 160, restart_r.bottom+20, 320, 120)
-    rcl_s = pg.Surface((rcl_r.width, rcl_r.height))
-    confirm_reset = False
-
-    while victory:
-        pos = pg.mouse.get_pos()
-        consts.clock.tick(consts.FPS)
-        screen.fill(game.gui_rgb)
-
-        button.settings_b.draw(screen)
-
-        button.green_button(restart_s, restart_r, pos)
-        screen.blit(restart_s, restart_r)
-
-        button.green_button(rcl_s, rcl_r, pos)
-        screen.blit(rcl_s, rcl_r)
-
-        util.draw_text(screen, True, 30, "deaths", "white", consts.W - 80, 30)
-        if game.players == 1:
-            util.draw_text(screen, True, 30, f"{player1.deaths}",
-                           player1.color, consts.W - 80, 90)
-
-        elif game.players == 2:
-            for player in players:
-                util.draw_text(
-                    screen, True, 30, f"{player.deaths}",
-                    player.color, consts.W-200+(80*player.num), 90
-                )
-
-        util.draw_text(screen, True, 60, "Thx for playing!",
-                       "white", consts.CX, 100)
-        util.draw_text(screen, True, 40, "play again", "white",
-                       restart_r.centerx, restart_r.centery)
-        util.draw_text(screen, True, 40, "reset lvls",
-                       "white", rcl_r.centerx, rcl_r.centery)
-
-        if game.speedrun:
-            util.draw_text(screen, True, 40, f"time {game.t_min}:{game.t_sec}.{
-                int(game.t_mval/6.5)}", "white", consts.CX, consts.H-70)
-
-        if confirm_reset:
-            screen.fill(game.gui_rgb)
-
-            util.draw_text(
-                screen, True, 80, "confirm reset?",
-                "white", consts.CX, consts.CY - 100
-            )
-
-            util.draw_text(
-                screen, True, 60,
-                "[y] yes, [n] no", "white", consts.CX, consts.CY + 100
-            )
-
-            keys = pg.key.get_pressed()
-            if keys[pg.K_n]:
-                confirm_reset = False
-            elif keys[pg.K_y]:
-                game.reset_timer()
-                game.reset_deaths()
-                with open("data.json", "r+") as f:
-                    data["completed_lvls"] = 1
-                    json.dump(data, f)
-                game.level_selected = False
-                level_selection(screen, game)
-
-                load_level(
-                    game.level if game.level_selected
-                    else 1
-                )
-
-                for p in players:
-                    p.jump = False
-                    p.vel_y = 0
-                    p.rect.topleft = game.respawn_point
-
-                victory = False
-
-        pg.display.update()
-
-        if restart_game:
-            game.reset_deaths()
-            game.stop_player_move = True
-            game.level = 1
-            victory = False
-            load_level(game.level)
-            for p in players:
-                p.alive = True
-                p.jump = False
-                p.vel_y = 0
-                p.rect.topleft = game.respawn_point
-            game.reset_timer()
-
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                sys.exit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_r:
-                    restart_game = True
-                if event.key == pg.K_ESCAPE:
-                    pause()
-            if event.type == pg.MOUSEBUTTONUP:
-                if restart_r.collidepoint(pos):
-                    restart_game = True
-                if button.settings_b.rect.collidepoint(pos):
-                    settings(screen, game)
-                if rcl_r.collidepoint(pos):
-                    confirm_reset = True
-
-
 def draw_stats():
     util.draw_text(screen, False, 30, f"level {game.level}", "white", 15, 15)
 
     if settings_obj.flying:
         util.draw_text(screen, True, 20, "fly", "white", consts.CX, 30)
-
-    if game.speedrun:
-        game.t_mval += 1
-
-        if game.t_mval >= consts.FPS:
-            game.t_sec += 1
-            game.t_mval = 0
-
-        if game.t_sec >= 60:
-            game.t_min += 1
-            game.t_sec = 0
-
-        util.draw_text(
-            screen, False, 30,
-            f"time {game.t_min}:{game.t_sec}",
-            "white", 15, 70
-        )
 
     if game.settings.show_deaths:
         util.draw_text(screen, True, 30, "deaths", "white", consts.W - 80, 30)
@@ -827,7 +691,7 @@ def load_level(num, reload=False):
             p.rect.topleft = game.respawn_point
 
     if not (game.leveltest or game.level < game.num_of_levels + 1):
-        victory()
+        level_selection(screen, game)
         return
 
     blocks.clear()
@@ -1146,11 +1010,6 @@ def update_block(block):
         if collision:
             asset_manager.get_sound("level_completed.wav").play()
             game.level += 1
-
-            if game.level > data["completed_lvls"]:
-                data["completed_lvls"] = game.level
-                with open("data.json", "r+") as f:
-                    json.dump(data, f)
 
             game.stop_player_move = True
             load_level(game.level)
