@@ -19,16 +19,15 @@ def button(surf, boolean, text, y):
 
 
 def settings(surf, g):
-    s = g.settings
     settings = True
     while settings:
         pos = pg.mouse.get_pos()
         consts.clock.tick(60)
         surf.fill(g.gui_rgb)
 
-        flip_rect = button(surf, s.flip_when_jump, 'flip', 250)
-        deaths_rect = button(surf, s.show_deaths, 'show deaths', 300)
-        messages_rect = button(surf, s.screen_messages, 'screen messages', 350)
+        flip_rect = button(surf, g.flip_when_jump, 'flip', 250)
+        deaths_rect = button(surf, g.show_deaths, 'show deaths', 300)
+        messages_rect = button(surf, g.screen_messages, 'screen messages', 350)
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -40,10 +39,10 @@ def settings(surf, g):
 
             if event.type == pg.MOUSEBUTTONUP:
                 if flip_rect.collidepoint(pos):
-                    s.flip_when_jump = not s.flip_when_jump
+                    g.flip_when_jump = not g.flip_when_jump
                 elif deaths_rect.collidepoint(pos):
-                    s.show_deaths = not s.show_deaths
+                    g.show_deaths = not g.show_deaths
                 elif messages_rect.collidepoint(pos):
-                    s.screen_messages = not s.screen_messages
+                    g.screen_messages = not g.screen_messages
 
         pg.display.update()

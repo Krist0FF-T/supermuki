@@ -22,24 +22,11 @@ pg.display.set_caption("SuperMuki")
 asset_manager.load_player_imgs("player")
 
 
-class Settings:
-    def __init__(self):
-        self.flip_when_jump = True
-        self.show_deaths = True
-        self.screen_messages = False
-        self.flying = False
-
-
-settings_obj = Settings()
-
-
 class Game:
     def __init__(self):
 
         self.devmode = False
-        self.leveltest = True
 
-        self.settings = settings_obj
         self.gui_rgb = (0, 0, 80)
         self.num_of_levels = 10
         self.level = 1
@@ -49,6 +36,11 @@ class Game:
         self.players = 1
         self.stop_player_move = False
         self.respawn_point = (0.0, 0.0)
+
+        self.flip_when_jump = True
+        self.show_deaths = True
+        self.screen_messages = False
+        self.flying = False
 
     def reset_timer(self):
         self.t_mval, self.t_sec, self.t_min = 0, 0, 0
@@ -301,10 +293,10 @@ def pause():
 def draw_stats():
     util.draw_text(screen, False, 30, f"level {game.level}", "white", 15, 15)
 
-    if settings_obj.flying:
+    if game.flying:
         util.draw_text(screen, True, 20, "fly", "white", consts.CX, 30)
 
-    if game.settings.show_deaths:
+    if game.show_deaths:
         util.draw_text(screen, True, 30, "deaths", "white", consts.W - 80, 30)
         if game.players == 1:
             util.draw_text(
@@ -433,7 +425,7 @@ class Player:
             dx = self.speed
             self.direction = 1
 
-        if self.jump and (settings_obj.flying or self.atj):
+        if self.jump and (game.flying or self.atj):
             self.vel_y = -10
             self.rotating = True
             # print("e")
@@ -448,7 +440,7 @@ class Player:
         else:
             self.frame_index = 3
 
-        if (self.rotating and settings_obj.flip_when_jump) or not self.alive:
+        if (self.rotating and game.flip_when_jump) or not self.alive:
             self.rotation -= 15
             # print("rotating")
             if abs(self.rotation) > 355:
@@ -543,6 +535,7 @@ class Player:
 
     def respawn(self):
         self.alive = True
+        self.rotating = False
         self.rotation = 0
         self.vel_y = 0
         self.rect.topleft = game.respawn_point
@@ -563,7 +556,7 @@ class Player:
                 (self.rect.x + cam.x, 30)
             )
 
-        if settings_obj.flip_when_jump:
+        if game.flip_when_jump:
             img_to_blit = pg.transform.rotate(c_img, self.rotation)
 
         else:
@@ -583,7 +576,7 @@ class Player:
         screen.blit(flipped, rect)
 
 
-solid_blocks = ["grass", "dirt", "shooter", "box", "falling", "sticky"]
+solid_blocks = ["grass", "dirt", "shooter", "box", "falling"]
 moving_blocks = ["moving", "enemy"]
 
 collideblocks = []
@@ -623,9 +616,7 @@ def update_bullets():
                     bullets.remove(b)
 
 
-if not game.devmode:
-    # intro(screen)
-    main_menu(screen, game)
+main_menu(screen, game)
 
 player1 = Player(1)
 player2 = Player(2)
@@ -656,7 +647,7 @@ def draw_bg_lines():
             )
 
 
-def addBgBlock(x, y, name):
+def add_bg_block(x, y, name):
     img = asset_manager.get_image(f"bg_blocks/{name}.png").convert()
     img.set_colorkey("black")
 
@@ -690,7 +681,7 @@ def load_level(num, reload=False):
         for p in players:
             p.rect.topleft = game.respawn_point
 
-    if not (game.leveltest or game.level < game.num_of_levels + 1):
+    if game.level > game.num_of_levels:
         level_selection(screen, game)
         return
 
@@ -733,8 +724,12 @@ def load_level(num, reload=False):
             elif col == "m":
                 add_block(j, i, "moving",  {"speed": 3, "direction": 1})
             elif col == "e":
-                add_block(j, i, "enemy",   {
-                    "speed": 3, "direction": 1, "cd": 0, "frame_index": 0})
+                add_block(j, i, "enemy", {
+                    "speed": 3,
+                    "direction": 1,
+                    "cd": 0,
+                    "frame_index": 0
+                })
             elif col == "s":
                 add_block(j, i, "shooter", {"cooldown": 12})
 
@@ -742,8 +737,10 @@ def load_level(num, reload=False):
                 add_block(j, i, "aimbot", {"cd": 12, "d": [1, 1]})
 
             elif col == "-":
-                lasers.append([[j*consts.TS, i*consts.TS+30],
-                               [(j+1)*consts.TS, i*consts.TS+30]])
+                lasers.append([
+                    [j*consts.TS, i*consts.TS+30],
+                    [(j+1)*consts.TS, i*consts.TS+30]
+                ])
 
             elif col == "g":
                 add_block(j, i, "grass")
@@ -751,9 +748,9 @@ def load_level(num, reload=False):
                     if i > 0 and tilemap[i-1][j] == ".":
                         rn = random.random()
                         if rn < 0.1:
-                            addBgBlock(j, i-1,   "grass")
+                            add_bg_block(j, i-1,   "grass")
                         elif rn < 0.2:
-                            addBgBlock(j, i-1, "flower")
+                            add_bg_block(j, i-1, "flower")
                         # elif rn < 0.3:
                         #     addBgBlock(j, i-1, "smiley")
 
@@ -796,11 +793,6 @@ def draw_blocks():
             img = asset_manager.get_image(f"blocks/checkpoint/{s}.png")
             b[1] = pg.transform.scale(img, (consts.TS, consts.TS))
 
-        # elif b[2] == "aimbot":
-        #     pg.draw.circle(
-        #         screen, BLUE, (b[0].centerx+cam.x, b[0].centery), 500, 5
-        #     )
-
         screen.blit(b[1], (b[0][0] + cam.x, b[0][1]+cam.y))
 
     for bg_b in bg_blocks:
@@ -832,7 +824,7 @@ def update_block(block):
         for s_block in blocks:
             if (
                 s_block == block or
-                name not in (solid_blocks + ["enemy", "moving"]) or
+                s_block[2] not in (solid_blocks + ["enemy", "moving"]) or
                 s_block[2] == "falling"
             ):
                 continue
@@ -1118,30 +1110,7 @@ while running:
         if event.type == pg.KEYDOWN:
 
             if event.key == pg.K_k:
-                settings_obj.flying = not settings_obj.flying
-
-            if event.key == pg.K_KP_0:
-                p = player2
-                j = p.rect.x/consts.TS
-                i = p.rect.y/consts.TS+1.3
-                add_block(
-                    p.rect.x/consts.TS,
-                    p.rect.y / consts.TS+1,
-                    "box",
-                    {"vel_y": -20}
-                )
-                add_block(j, i, "falling", {
-                    "vel_y": 0,
-                    "state": "fly",
-                    "pos": i*consts.TS,
-                    "cd": 0
-                })
-                add_block(j, i, "enemy", {
-                    "speed": 1,
-                    "direction": 1,
-                    "cd": 0,
-                    "frame_index": 0
-                })
+                game.flying = not game.flying
 
             if event.key == pg.K_r:
                 reload = not event.mod & pg.KMOD_LSHIFT
