@@ -1054,43 +1054,7 @@ while running:
     if not vsync:
         consts.clock.tick(consts.FPS)
 
-    screen.fill(consts.bg_color)
-
-    draw_bg_lines()
-    draw_blocks()
-    draw_players()
-    draw_bullets()
-    draw_lasers()
-    draw_stats()
-
-    pg.display.update()
-
-    if game.stop_player_move:
-        left,  right = False, False
-        left2, right2 = False, False
-        for p in players:
-            p.vel_y = 0
-            p.jump = False
-            p.knockback = 0
-        game.stop_player_move = False
-
-    update_players()
-    update_lasers()
-    update_blocks()
-    cam.update()
-    update_bullets()
-
-    if should_pause:
-        game.stop_player_move = True
-        game.load_level_bool = False
-        pause()
-        if game.load_level_bool:
-            level_selection(screen, game)
-            if game.level_selected:
-                load_level(game.level)
-                game.load_level_bool = False
-        should_pause = False
-
+    # handle input
     for event in pg.event.get():
         if event.type == pg.QUIT:
             running = False
@@ -1147,6 +1111,46 @@ while running:
                 right2 = False
             if event.key == pg.K_LEFT:
                 left2 = False
+
+    if should_pause:
+        game.stop_player_move = True
+        game.load_level_bool = False
+        pause()
+        if game.load_level_bool:
+            level_selection(screen, game)
+            if game.level_selected:
+                load_level(game.level)
+                game.load_level_bool = False
+        should_pause = False
+
+    if game.stop_player_move:
+        left,  right = False, False
+        left2, right2 = False, False
+        for p in players:
+            p.vel_y = 0
+            p.jump = False
+            p.knockback = 0
+        game.stop_player_move = False
+
+    # update
+    update_players()
+    update_lasers()
+    update_blocks()
+    cam.update()
+    update_bullets()
+
+    # render
+    screen.fill(consts.bg_color)
+
+    draw_bg_lines()
+    draw_blocks()
+    draw_players()
+    draw_bullets()
+    draw_lasers()
+    draw_stats()
+
+    pg.display.update()
+
 
 pg.quit()
 sys.exit()
