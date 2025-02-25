@@ -5,7 +5,6 @@ import json
 import sys
 from math import sin, cos, atan2, hypot
 
-from scripts.settings import settings
 from scripts.level_selection import level_selection
 from scripts.main_menu import main_menu
 from scripts import consts, button, util
@@ -106,8 +105,6 @@ class Game:
                 if game.players == 2:
                     player2.color[i] = c_b2[i].rect.centerx - (consts.W-450)
 
-            button.settings_b.draw(screen)
-
             player1.images = []
             for c_img in asset_manager.player_images:
                 p_img = util.palette_swap(c_img, c_img.get_at(
@@ -190,9 +187,6 @@ class Game:
                     if button.confirm_c.rect.collidepoint(pos):
                         c_s = False
 
-                    if button.settings_b.rect.collidepoint(pos):
-                        settings(screen, game)
-
 
 game = Game()
 
@@ -214,7 +208,6 @@ def pause():
         screen.fill(game.gui_rgb)
 
         # draw buttons
-        button.settings_b.draw(screen)
         button.load_lvl_b.draw(screen)
         button.color_s_b.draw(screen)
 
@@ -258,8 +251,6 @@ def pause():
                 if quit_r.collidepoint(pos):
                     pg.quit()
                     sys.exit()
-                if button.settings_b.rect.collidepoint(pos):
-                    settings(screen, game)
                 if button.load_lvl_b.rect.collidepoint(pos):
                     game.load_level_bool = True
                     paused = False

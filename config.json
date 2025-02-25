@@ -1,4 +1,6 @@
 {
     "auto_fullscreen": false,
-    "vsync": true
+    "flip_when_jump": true,
+    "show_deaths": true,
+    "vsync": false
 }

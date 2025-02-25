@@ -50,9 +50,8 @@ p2_blue = Button(consts.W, 520, 'c_s/blue.png', 7)
 confirm_c = Button(consts.W // 2, consts.H // 2, 'c_s/confirm_c.png', 5)
 
 # pause buttons
-settings_b = Button(50, 50, 'settings.png', 3)
-load_lvl_b = Button(50, 150, 'lvl.png', 3)
-color_s_b = Button(50, 250, 'color_s.png', 3)
+load_lvl_b = Button(50, 50, 'lvl.png', 3)
+color_s_b = Button(50, 150, 'color_s.png', 3)
 
 quit_button = Button(consts.CX + 250, consts.CY + 50, 'simplebutton.png', 6)
 resume_button = Button(consts.CX - 250, consts.CY + 50, 'simplebutton.png', 6)

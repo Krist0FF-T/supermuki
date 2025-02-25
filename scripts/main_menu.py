@@ -1,6 +1,5 @@
 import pygame as pg
 from . import button, consts, util
-from .settings import settings
 
 
 def main_menu(surface, game):
@@ -19,8 +18,6 @@ def main_menu(surface, game):
         consts.clock.tick(60)
         pos = pg.mouse.get_pos()
         surface.fill((0, 0, 80))
-
-        button.settings_b.draw(surface)
 
         button.green_button(b1_s, b1_r, pos)
         button.green_button(b2_s, b2_r, pos)
@@ -71,7 +68,5 @@ def main_menu(surface, game):
                 if b2_r.collidepoint(pos):
                     option = 2
                     selected = True
-                if button.settings_b.rect.collidepoint(pos):
-                    settings(surface, game)
 
     game.players = option
