@@ -1,4 +1,3 @@
-from random import choice
 import random
 import pygame as pg
 import json
@@ -860,34 +859,31 @@ def update_block(block):
 
     elif name == "aimbot":
         props["cd"] -= 1
-
         if props["cd"] > 0:
             return
 
-        alive_players = [p for p in players if p.alive]
+        alive_players = [ p for p in players if p.alive ]
 
         if not alive_players:
             return
 
-        target = choice(alive_players).rect
-        if hypot(
-            target.centerx-rect.centerx,
-            target.centery-rect.centery
-        ) > 500:
+        target = random.choice(alive_players).rect
+
+        dx = target.centerx - rect.centerx
+        dy = target.centery - rect.centery
+        dist = hypot(dx, dy)
+
+        if not 0 < dist < 500:
             return
 
         for b in collideblocks:
             if b[0].clipline(target.center, rect.center):
                 return
 
-        radians = atan2(
-            rect.centery - target.centery,
-            rect.centerx - target.centerx
-        )
+        vx = dx / dist
+        vy = dy / dist
 
-        dx, dy = cos(radians), sin(radians)
-
-        bullets.append([list(rect.center), -dx, -dy])
+        bullets.append([list(rect.center), vx, vy])
         props["cd"] = 70
         asset_manager.get_sound("shoot.wav").play()
 
