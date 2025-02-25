@@ -69,15 +69,6 @@ def level_selection(surface, g):
             consts.WHITE, consts.CX, 90
         )
 
-        if g.devmode:
-            pg.draw.line(
-                surface,
-                "red",
-                (consts.CX, 0),
-                (consts.CX, consts.H),
-                4
-            )
-
         pg.display.update()
 
         for event in pg.event.get():

@@ -23,9 +23,6 @@ asset_manager.load_player_imgs("player")
 
 class Game:
     def __init__(self):
-
-        self.devmode = False
-
         self.gui_rgb = (0, 0, 80)
         self.num_of_levels = 10
         self.level = 1
@@ -38,7 +35,7 @@ class Game:
 
         self.flip_when_jump = True
         self.show_deaths = True
-        self.screen_messages = False
+
         self.flying = False
 
     def reset_timer(self):
