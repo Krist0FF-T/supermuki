@@ -2,24 +2,17 @@ import pygame as pg
 import sys
 
 from . import button, consts, util
-from .main_menu import main_menu
-from .level_selection import level_selection
 
 
-def pause(screen, game, players, player1, player2, load_level):
+def pause(screen):
     """
     Handle the pause menu functionality.
     
     Args:
         screen: pygame screen surface
-        game: Game instance
-        players: list of player objects
-        player1: Player 1 object
-        player2: Player 2 object  
-        load_level: function to load levels
     
     Returns:
-        None
+        str: Action taken by user - 'resume', 'main_menu', 'load_level', 'color_selection', or 'quit'
     """
     # reset_time_b = Button(0, 100, "simple_b2.png", 12)
 
@@ -28,13 +21,12 @@ def pause(screen, game, players, player1, player2, load_level):
 
     quit_r = button.quit_button.rect
     quit_s = pg.Surface((quit_r.width, quit_r.height))
-    mm = False  # enter main menu
 
     paused = True
     while paused:
         pos = pg.mouse.get_pos()
         consts.clock.tick(consts.FPS)
-        screen.fill(game.gui_rgb)
+        screen.fill((0, 0, 80))  # Standard GUI background color
 
         # draw buttons
         button.load_lvl_b.draw(screen)
@@ -66,45 +58,21 @@ def pause(screen, game, players, player1, player2, load_level):
         # events
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pg.quit()
-                sys.exit()
+                return 'quit'
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_q:
-                    pg.quit()
+                    return 'quit'
                 if event.key == pg.K_ESCAPE or event.key == pg.K_c:
-                    paused = False
+                    return 'resume'
 
             if event.type == pg.MOUSEBUTTONUP:
                 if resume_r.collidepoint(pos):
-                    paused = False
+                    return 'resume'
                 if quit_r.collidepoint(pos):
-                    pg.quit()
-                    sys.exit()
+                    return 'quit'
                 if button.load_lvl_b.rect.collidepoint(pos):
-                    game.load_level_bool = True
-                    paused = False
+                    return 'load_level'
                 if button.color_s_b.rect.collidepoint(pos):
-                    game.color_selection()
+                    return 'color_selection'
                 if button.mainm_b.rect.collidepoint(pos):
-                    paused = False
-                    mm = True
-
-    if mm:
-        main_menu(screen, game)
-        if game.players == 2:
-            if len(players) < 2:
-                players.append(player2)
-        else:
-            players.clear()
-            players.append(player1)
-
-        for p in players:
-            p.deaths = 0
-        game.color_selection()
-        game.level_selected = False
-        level_selection(screen, game)
-
-        if game.level_selected:
-            load_level(game.level)
-        else:
-            load_level(1)
+                    return 'main_menu'

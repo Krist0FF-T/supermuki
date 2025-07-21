@@ -8,7 +8,6 @@ from scripts.level_selection import level_selection
 from scripts.main_menu import main_menu
 from scripts import consts, button, util
 from scripts.assets import asset_manager
-from scripts.pause import pause
 
 with open("config.json", "r") as f:
     config = json.load(f)
@@ -183,6 +182,54 @@ class Game:
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if button.confirm_c.rect.collidepoint(pos):
                         c_s = False
+
+    def pause(self, screen, players, player1, player2, load_level):
+        """
+        Handle pause functionality and coordinate with pause UI.
+        
+        Args:
+            screen: pygame screen surface
+            players: list of player objects
+            player1: Player 1 object
+            player2: Player 2 object
+            load_level: function to load levels
+        """
+        from scripts.pause import pause
+        from scripts.main_menu import main_menu
+        from scripts.level_selection import level_selection
+        
+        action = pause(screen)
+        
+        if action == 'quit':
+            import pygame as pg
+            import sys
+            pg.quit()
+            sys.exit()
+        elif action == 'resume':
+            return
+        elif action == 'load_level':
+            self.load_level_bool = True
+        elif action == 'color_selection':
+            self.color_selection()
+        elif action == 'main_menu':
+            main_menu(screen, self)
+            if self.players == 2:
+                if len(players) < 2:
+                    players.append(player2)
+            else:
+                players.clear()
+                players.append(player1)
+
+            for p in players:
+                p.deaths = 0
+            self.color_selection()
+            self.level_selected = False
+            level_selection(screen, self)
+
+            if self.level_selected:
+                load_level(self.level)
+            else:
+                load_level(1)
 
 
 game = Game()
@@ -1025,7 +1072,7 @@ while running:
     if should_pause:
         game.stop_player_move = True
         game.load_level_bool = False
-        pause(screen, game, players, player1, player2, load_level)
+        game.pause(screen, players, player1, player2, load_level)
         if game.load_level_bool:
             level_selection(screen, game)
             if game.level_selected:
