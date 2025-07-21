@@ -4,8 +4,6 @@ import json
 import sys
 from math import sin, cos, atan2, hypot
 
-from scripts.level_selection import level_selection
-from scripts.main_menu import main_menu
 from scripts import consts, button, util
 from scripts.assets import asset_manager
 
@@ -45,147 +43,19 @@ class Game:
             player.respawn()
             player.deaths = 0
 
-    def color_selection(self):
-        c_s = True
-        lines = [
-            ["red", 200, 300, 450],
-            ["green", 200, 410, 450],
-            ["blue", 200, 520, 450]
-        ]
-
-        if game.players == 2:
-            lines.append(["red",   consts.W-450, 300, consts.W-200])
-            lines.append(["green", consts.W-450, 410, consts.W-200])
-            lines.append(["blue",  consts.W-450, 520, consts.W-200])
-
-        c_b1 = [button.p1_red, button.p1_green, button.p1_blue]
-        c_b2 = [button.p2_red, button.p2_green, button.p2_blue]
-
-        confirm_r = button.confirm_c.rect
-        confirm_s = pg.Surface((confirm_r.width, confirm_r.height))
-
-        while c_s:
-            consts.clock.tick(consts.FPS)
-            screen.fill((50, 50, 50))
-            pos = pg.mouse.get_pos()
-            button.colored_b(confirm_s, confirm_r, [80, 80, 80], pos)
-            screen.blit(confirm_s, confirm_r)
-            util.draw_text(
-                screen, True, 30, "Done", "white",
-                confirm_r.centerx, confirm_r.centery
-            )
-
-            for li in lines:
-                pg.draw.line(screen, li[0], [li[1], li[2]], [
-                    li[3], li[2]], 7)
-
-            for bu1 in c_b1:
-                bu1.draw(screen)
-            if game.players == 2:
-                for bu2 in c_b2:
-                    bu2.draw(screen)
-
-            for i in range(3):
-                if c_b1[i].rect.left < 200:
-                    c_b1[i].rect.left = 200
-                if c_b1[i].rect.right > 450:
-                    c_b1[i].rect.right = 450
-
-                if game.players == 2:
-                    if c_b2[i].rect.left < consts.W-450:
-                        c_b2[i].rect.left = consts.W-450
-                    if c_b2[i].rect.right > consts.W-200:
-                        c_b2[i].rect.right = consts.W-200
-
-                player1.color[i] = c_b1[i].rect.centerx - 200
-                if game.players == 2:
-                    player2.color[i] = c_b2[i].rect.centerx - (consts.W-450)
-
-            player1.images = []
-            for c_img in asset_manager.player_images:
-                p_img = util.palette_swap(c_img, c_img.get_at(
-                    (0, 0)), player1.color).convert()
-                p_img.set_colorkey((0, 0, 0))
-                player1.images.append(p_img)
-
-            if game.players == 2:
-                player2.images = []
-                for c_img in asset_manager.player_images:
-                    p_img = util.palette_swap(c_img, c_img.get_at(
-                        (0, 0)), player2.color).convert()
-                    p_img.set_colorkey((0, 0, 0))
-                    player2.images.append(p_img)
-
-            p1_pv_image = pg.transform.scale(player1.images[2], (80, 80))
-            p1_pv_rect = p1_pv_image.get_rect()
-            p1_pv_rect.center = 350, 120
-
-            p2_pv_image = pg.transform.scale(player2.images[2], (80, 80))
-            p2_pv_rect = p2_pv_image.get_rect()
-            p2_pv_rect.center = util.W - 350, 120
-
-            screen.blit((p1_pv_image), p1_pv_rect)
-            if game.players == 2:
-                screen.blit((p2_pv_image), p2_pv_rect)
-
-            util.draw_text(
-                screen, True, 30, str(player1.color),
-                "white", p1_pv_rect.centerx, consts.H - 100
-            )
-
-            if game.players == 2:
-                util.draw_text(
-                    screen, True, 30, str(player2.color),
-                    "white", p2_pv_rect.centerx, consts.H - 100
-                )
-
-            pg.display.update()
-
-            if pg.mouse.get_pressed()[0]:
-                for bu in c_b1:
-                    if pg.Rect(
-                        bu.rect.x-25,
-                        bu.rect.y-25,
-                        bu.rect.width+50,
-                        bu.rect.height+50
-                    ).collidepoint(pos):
-                        bu.rect.centerx = pos[0]
-                    if bu.rect.left < 200:
-                        bu.rect.left = 200
-                    if bu.rect.right > 450:
-                        bu.rect.right = 450
-
-                if game.players == 2:
-                    for bu in c_b2:
-                        if pg.Rect(
-                            bu.rect.x - 20,
-                            bu.rect.y - 20,
-                            bu.rect.width + 40,
-                            bu.rect.height + 40
-                        ).collidepoint(pos):
-                            bu.rect.centerx = pos[0]
-
-                        if bu.rect.left < consts.W - 450:
-                            bu.rect.left = consts.W - 450
-
-                        if bu.rect.right > consts.W - 200:
-                            bu.rect.right = consts.W - 200
-
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pg.quit()
-                    sys.exit()
-                if event.type == pg.KEYDOWN:
-                    if event.key in [pg.K_SPACE, pg.K_ESCAPE]:
-                        c_s = False
-
-                if event.type == pg.MOUSEBUTTONDOWN:
-                    if button.confirm_c.rect.collidepoint(pos):
-                        c_s = False
+    def color_selection(self, screen, players, player1, player2):
+        """Launch color selection menu using the new menu system."""
+        from scripts.menu_manager import GameState, MenuManager
+        from scripts.color_selection_menu import ColorSelectionMenu
+        
+        game_state = GameState(self, players, player1, player2)
+        menu_manager = MenuManager(screen, game_state)
+        menu_manager.set_menu(ColorSelectionMenu)
+        menu_manager.run_current_menu()
 
     def pause(self, screen, players, player1, player2, load_level):
         """
-        Handle pause functionality and coordinate with pause UI.
+        Handle pause functionality using the new menu system.
         
         Args:
             screen: pygame screen surface
@@ -194,11 +64,16 @@ class Game:
             player2: Player 2 object
             load_level: function to load levels
         """
-        from scripts.pause import pause
-        from scripts.main_menu import main_menu
-        from scripts.level_selection import level_selection
+        from scripts.menu_manager import GameState, MenuManager
+        from scripts.pause import PauseMenu
+        from scripts.main_menu import MainMenu
+        from scripts.level_selection import LevelSelectionMenu
         
-        action = pause(screen)
+        game_state = GameState(self, players, player1, player2, load_level)
+        menu_manager = MenuManager(screen, game_state)
+        menu_manager.set_menu(PauseMenu)
+        
+        action = menu_manager.run_current_menu()
         
         if action == 'quit':
             import pygame as pg
@@ -210,21 +85,30 @@ class Game:
         elif action == 'load_level':
             self.load_level_bool = True
         elif action == 'color_selection':
-            self.color_selection()
+            self.color_selection(screen, players, player1, player2)
         elif action == 'main_menu':
-            main_menu(screen, self)
-            if self.players == 2:
-                if len(players) < 2:
-                    players.append(player2)
-            else:
-                players.clear()
-                players.append(player1)
+            menu_manager.set_menu(MainMenu)
+            result = menu_manager.run_current_menu()
+            if result:
+                self.players = result
+                if self.players == 2:
+                    if len(players) < 2:
+                        players.append(player2)
+                else:
+                    players.clear()
+                    players.append(player1)
 
             for p in players:
                 p.deaths = 0
-            self.color_selection()
+            self.color_selection(screen, players, player1, player2)
             self.level_selected = False
-            level_selection(screen, self)
+            
+            menu_manager.set_menu(LevelSelectionMenu)
+            result = menu_manager.run_current_menu()
+            if result:
+                self.level_selected = result['level_selected']
+                self.level = result['level']
+                self.level_to_load = result['level_to_load']
 
             if self.level_selected:
                 load_level(self.level)
@@ -564,7 +448,17 @@ def update_bullets():
                     bullets.remove(b)
 
 
-main_menu(screen, game)
+from scripts.main_menu import MainMenu
+from scripts.menu_manager import GameState, MenuManager
+
+# Initialize menu system
+game_state = GameState(game)
+menu_manager = MenuManager(screen, game_state)
+menu_manager.set_menu(MainMenu)
+result = menu_manager.run_current_menu()
+
+if result:
+    game.players = result
 
 player1 = Player(1)
 player2 = Player(2)
@@ -630,7 +524,17 @@ def load_level(num, reload=False):
             p.rect.topleft = game.respawn_point
 
     if game.level > game.num_of_levels:
-        level_selection(screen, game)
+        from scripts.menu_manager import GameState, MenuManager
+        from scripts.level_selection import LevelSelectionMenu
+        
+        game_state = GameState(game)
+        menu_manager = MenuManager(screen, game_state)
+        menu_manager.set_menu(LevelSelectionMenu)
+        result = menu_manager.run_current_menu()
+        if result:
+            game.level_selected = result['level_selected']
+            game.level = result['level']
+            game.level_to_load = result['level_to_load']
         return
 
     blocks.clear()
@@ -1001,8 +905,19 @@ def draw_lasers():
         )
 
 
-game.color_selection()
-level_selection(screen, game)
+# Update game state to have player references for color selection
+game_state.player1 = player1
+game_state.player2 = player2
+
+game.color_selection(screen, players, player1, player2)
+
+menu_manager.set_menu(LevelSelectionMenu)
+result = menu_manager.run_current_menu()
+if result:
+    game.level_selected = result['level_selected']
+    game.level = result['level']
+    game.level_to_load = result['level_to_load']
+
 load_level(game.level)
 
 should_pause = False
@@ -1074,7 +989,18 @@ while running:
         game.load_level_bool = False
         game.pause(screen, players, player1, player2, load_level)
         if game.load_level_bool:
-            level_selection(screen, game)
+            from scripts.menu_manager import GameState, MenuManager
+            from scripts.level_selection import LevelSelectionMenu
+            
+            game_state = GameState(game)
+            menu_manager = MenuManager(screen, game_state)
+            menu_manager.set_menu(LevelSelectionMenu)
+            result = menu_manager.run_current_menu()
+            if result:
+                game.level_selected = result['level_selected']
+                game.level = result['level']
+                game.level_to_load = result['level_to_load']
+            
             if game.level_selected:
                 load_level(game.level)
                 game.load_level_bool = False
