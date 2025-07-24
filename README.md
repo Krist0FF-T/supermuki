@@ -3,16 +3,15 @@ A simple 2D platformer game I wrote in February 2022.
 
 Small modifications were made since then (most of which are visually innoticable). Am planning to create a separate branch for the original code (check [TODO](#todo) for more info).
 
-## Videos
-In the YouTube [playlist](https://youtube.com/playlist?list=PLgWb8hd3l5BeBjXKbJmbXhGqzh3PWVf91).
-
-Contains development time-lapses from the early stages and showcases of certain versions.
-
-## Screenshots
+## Screenshots and videos
 ![image](https://github.com/Krist0FF-T/supermuki/blob/main/screenshots/7.png)
+
+[YouTube playlist](https://youtube.com/playlist?list=PLgWb8hd3l5BeBjXKbJmbXhGqzh3PWVf91)
+(contains **development time-lapses** from the early stages and **showcases** of certain versions.)
 
 <details>
 <summary>More screenshots</summary>
+
 ![image](https://github.com/Krist0FF-T/supermuki/blob/main/screenshots/1.png)
 ![image](https://github.com/Krist0FF-T/supermuki/blob/main/screenshots/2.png)
 ![image](https://github.com/Krist0FF-T/supermuki/blob/main/screenshots/3.png)
