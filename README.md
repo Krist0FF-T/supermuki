@@ -1,7 +1,7 @@
 # SuperMuki
 A simple 2D platformer game I wrote in February 2022.
 
-Small modifications were made since then (most of which are visually innoticable). Am planning to create a separate branch for the original code (check [TODO](#todo) for more info).
+Small modifications were made since then (most of which are visually unnoticeable). Am planning to create a separate branch for the original code (check [TODO](#todo) for more info).
 
 ## Screenshots and videos
 ![image](https://github.com/Krist0FF-T/supermuki/blob/main/screenshots/7.png)
