@@ -136,200 +136,309 @@ class Game:
 
             # Draw color control buttons for player 1
             for bu1 in c_b1:
+                # Draw each RGB slider button for player 1
                 bu1.draw(screen)
+            # Check if there are 2 players to draw player 2's controls
             if game.players == 2:
+                # Draw color control buttons for player 2
                 for bu2 in c_b2:
+                    # Draw each RGB slider button for player 2
                     bu2.draw(screen)
 
+            # Loop through RGB color components (red, green, blue)
             for i in range(3):
+                # Constrain player 1's color slider to stay within left boundary
                 if c_b1[i].rect.left < 200:
                     c_b1[i].rect.left = 200
+                # Constrain player 1's color slider to stay within right boundary
                 if c_b1[i].rect.right > 450:
                     c_b1[i].rect.right = 450
 
+                # Apply constraints for player 2's sliders if in 2-player mode
                 if game.players == 2:
+                    # Constrain player 2's color slider to stay within left boundary
                     if c_b2[i].rect.left < consts.W-450:
                         c_b2[i].rect.left = consts.W-450
+                    # Constrain player 2's color slider to stay within right boundary
                     if c_b2[i].rect.right > consts.W-200:
                         c_b2[i].rect.right = consts.W-200
 
+                # Calculate player 1's color value based on slider position (0-250 range)
                 player1.color[i] = c_b1[i].rect.centerx - 200
+                # Calculate player 2's color value if in 2-player mode
                 if game.players == 2:
                     player2.color[i] = c_b2[i].rect.centerx - (consts.W-450)
 
+            # Regenerate player 1's sprite images with new color
             player1.images = []
+            # Loop through each base player sprite image
             for c_img in asset_manager.player_images:
+                # Apply color swap to the sprite using the new color values
                 p_img = util.palette_swap(c_img, c_img.get_at(
                     (0, 0)), player1.color).convert()
+                # Set black as transparent color for proper sprite rendering
                 p_img.set_colorkey((0, 0, 0))
+                # Add the recolored sprite to player 1's image list
                 player1.images.append(p_img)
 
+            # Generate player 2's sprite images if in 2-player mode
             if game.players == 2:
+                # Clear player 2's current sprite images
                 player2.images = []
+                # Loop through each base player sprite image
                 for c_img in asset_manager.player_images:
+                    # Apply color swap to the sprite using player 2's color values
                     p_img = util.palette_swap(c_img, c_img.get_at(
                         (0, 0)), player2.color).convert()
+                    # Set black as transparent color for proper sprite rendering
                     p_img.set_colorkey((0, 0, 0))
+                    # Add the recolored sprite to player 2's image list
                     player2.images.append(p_img)
 
+            # Create preview image of player 1's sprite scaled to 80x80 pixels
             p1_pv_image = pg.transform.scale(player1.images[2], (80, 80))
+            # Get rectangle for player 1's preview image
             p1_pv_rect = p1_pv_image.get_rect()
+            # Position player 1's preview on the left side of screen
             p1_pv_rect.center = 350, 120
 
+            # Create preview image of player 2's sprite scaled to 80x80 pixels
             p2_pv_image = pg.transform.scale(player2.images[2], (80, 80))
+            # Get rectangle for player 2's preview image
             p2_pv_rect = p2_pv_image.get_rect()
+            # Position player 2's preview on the right side of screen (note: should be consts.W instead of util.W)
             p2_pv_rect.center = util.W - 350, 120
 
+            # Draw player 1's sprite preview on screen
             screen.blit((p1_pv_image), p1_pv_rect)
+            # Draw player 2's sprite preview if in 2-player mode
             if game.players == 2:
                 screen.blit((p2_pv_image), p2_pv_rect)
 
+            # Display player 1's current RGB color values below their preview
             util.draw_text(
                 screen, True, 30, str(player1.color),
                 "white", p1_pv_rect.centerx, consts.H - 100
             )
 
+            # Display player 2's current RGB color values if in 2-player mode
             if game.players == 2:
                 util.draw_text(
                     screen, True, 30, str(player2.color),
                     "white", p2_pv_rect.centerx, consts.H - 100
                 )
 
+            # Update the display to show all color selection elements
             pg.display.update()
 
+            # Check if left mouse button is being held down for dragging sliders
             if pg.mouse.get_pressed()[0]:
+                # Handle dragging for player 1's color sliders
                 for bu in c_b1:
+                    # Create expanded hit area around each slider button for easier dragging
                     if pg.Rect(
                         bu.rect.x-25,
                         bu.rect.y-25,
                         bu.rect.width+50,
                         bu.rect.height+50
                     ).collidepoint(pos):
+                        # Move slider button to follow mouse x-position
                         bu.rect.centerx = pos[0]
+                    # Ensure slider doesn't go past left boundary
                     if bu.rect.left < 200:
                         bu.rect.left = 200
+                    # Ensure slider doesn't go past right boundary
                     if bu.rect.right > 450:
                         bu.rect.right = 450
 
+                # Handle dragging for player 2's color sliders if in 2-player mode
                 if game.players == 2:
                     for bu in c_b2:
+                        # Create expanded hit area around each slider button for easier dragging
                         if pg.Rect(
                             bu.rect.x - 20,
                             bu.rect.y - 20,
                             bu.rect.width + 40,
                             bu.rect.height + 40
                         ).collidepoint(pos):
+                            # Move slider button to follow mouse x-position
                             bu.rect.centerx = pos[0]
 
+                        # Ensure player 2's slider doesn't go past left boundary
                         if bu.rect.left < consts.W - 450:
                             bu.rect.left = consts.W - 450
 
+                        # Ensure player 2's slider doesn't go past right boundary
                         if bu.rect.right > consts.W - 200:
                             bu.rect.right = consts.W - 200
 
+            # Process all pygame events for the color selection menu
             for event in pg.event.get():
+                # Check if user clicked X to close window
                 if event.type == pg.QUIT:
+                    # Quit pygame and exit program
                     pg.quit()
                     sys.exit()
+                # Check if a key was pressed
                 if event.type == pg.KEYDOWN:
+                    # Check if Space or Escape key was pressed to exit color selection
                     if event.key in [pg.K_SPACE, pg.K_ESCAPE]:
+                        # Set flag to exit color selection loop
                         c_s = False
 
+                # Check if mouse button was clicked
                 if event.type == pg.MOUSEBUTTONDOWN:
+                    # Check if click was on the confirmation button
                     if button.confirm_c.rect.collidepoint(pos):
+                        # Set flag to exit color selection loop
                         c_s = False
 
 
+# Create the main game instance with all settings and state
 game = Game()
 
 
+# Function to display and handle the pause menu when game is paused
 def pause():
     # reset_time_b = Button(0, 100, "simple_b2.png", 12)
 
+    # Get rectangle reference for the resume button
     resume_r = button.resume_button.rect
+    # Create surface for the resume button with matching dimensions
     resume_s = pg.Surface((resume_r.width, resume_r.height))
 
+    # Get rectangle reference for the quit button
     quit_r = button.quit_button.rect
+    # Create surface for the quit button with matching dimensions
     quit_s = pg.Surface((quit_r.width, quit_r.height))
+    # Flag to track if user wants to return to main menu
     mm = False  # enter main menu
 
+    # Flag to control the pause menu loop
     paused = True
+    # Main pause menu loop
     while paused:
+        # Get current mouse cursor position for button interaction
         pos = pg.mouse.get_pos()
+        # Limit frame rate to target FPS
         consts.clock.tick(consts.FPS)
+        # Fill screen with the game's GUI background color
         screen.fill(game.gui_rgb)
 
         # draw buttons
+        # Draw the load level button
         button.load_lvl_b.draw(screen)
+        # Draw the color selection button
         button.color_s_b.draw(screen)
 
+        # Draw the main menu button
         button.mainm_b.draw(screen)
 
+        # Render the resume button with green color and hover effects
         button.green_button(resume_s, resume_r, pos)
+        # Draw the resume button surface onto the screen
         screen.blit(resume_s, resume_r)
 
+        # Render the quit button with green color and hover effects
         button.green_button(quit_s, quit_r, pos)
+        # Draw the quit button surface onto the screen
         screen.blit(quit_s, quit_r)
 
         # draw text
+        # Draw "Paused!" title text centered at the top
         util.draw_text(screen, True, 100, "Paused!",
                        "white", consts.CX, 150)
+        # Draw "Resume (C)" text on the resume button
         util.draw_text(
             screen, True, 45, "Resume (C)", "white",
             button.resume_button.rect.centerx,
             button.resume_button.rect.centery
         )
+        # Draw "Quit (Q)" text on the quit button
         util.draw_text(
             screen, True, 45, "Quit (Q)", "white",
             button.quit_button.rect.centerx, button.quit_button.rect.centery
         )
 
+        # Update the display to show all pause menu elements
         pg.display.update()
 
         # events
+        # Process all pygame events for the pause menu
         for event in pg.event.get():
+            # Check if user clicked X to close window
             if event.type == pg.QUIT:
+                # Quit pygame and exit program
                 pg.quit()
                 sys.exit()
+            # Check if a key was pressed down
             if event.type == pg.KEYDOWN:
+                # Check if Q key was pressed to quit game
                 if event.key == pg.K_q:
+                    # Quit pygame and exit program
                     pg.quit()
+                # Check if Escape or C key was pressed to resume game
                 if event.key == pg.K_ESCAPE or event.key == pg.K_c:
+                    # Exit pause menu and resume game
                     paused = False
 
+            # Check if a mouse button was released (click completed)
             if event.type == pg.MOUSEBUTTONUP:
+                # Check if click was on resume button
                 if resume_r.collidepoint(pos):
+                    # Exit pause menu and resume game
                     paused = False
+                # Check if click was on quit button
                 if quit_r.collidepoint(pos):
+                    # Quit pygame and exit program
                     pg.quit()
                     sys.exit()
+                # Check if click was on load level button
                 if button.load_lvl_b.rect.collidepoint(pos):
+                    # Set flag to load level selection menu
                     game.load_level_bool = True
+                    # Exit pause menu
                     paused = False
+                # Check if click was on color selection button
                 if button.color_s_b.rect.collidepoint(pos):
+                    # Open color selection menu
                     game.color_selection()
+                # Check if click was on main menu button
                 if button.mainm_b.rect.collidepoint(pos):
+                    # Exit pause menu and set flag to return to main menu
                     paused = False
                     mm = True
 
+    # Check if user chose to return to main menu
     if mm:
+        # Show main menu to select number of players
         main_menu(screen, game)
+        # Adjust player list based on selected player count
         if game.players == 2:
+            # Add player 2 if not already in the list for 2-player mode
             if len(players) < 2:
                 players.append(player2)
         else:
+            # Clear player list and add only player 1 for single-player mode
             players.clear()
             players.append(player1)
 
+        # Reset death counts for all active players
         for p in players:
             p.deaths = 0
+        # Open color selection menu for player customization
         game.color_selection()
+        # Reset level selection flag
         game.level_selected = False
+        # Show level selection menu
         level_selection(screen, game)
 
+        # Load the selected level or default to level 1
         if game.level_selected:
+            # Load the level chosen by the player
             load_level(game.level)
         else:
+            # Load level 1 as default if no level was selected
             load_level(1)
 
 
