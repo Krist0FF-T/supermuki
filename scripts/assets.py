@@ -51,7 +51,7 @@ class AssetManager:
     # Method to load and return fonts with specified size and optional custom font name
     def get_font(self, size: int=20, name=FONT_NAME):
         # Load and return a font object from the assets folder with given size
-        return pg.Font(f"assets/fonts/{name}", size)
+        return pg.font.Font(f"assets/fonts/{name}", size)
 
 
     # Method to preload and prepare all player character sprites for the game

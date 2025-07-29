@@ -1,84 +1,140 @@
+# Import random module for random number generation used in game mechanics
 import random
+# Import pygame library for graphics, sound, and input handling
 import pygame as pg
+# Import json module for loading game configuration from config file
 import json
+# Import sys module for system exit functionality
 import sys
+# Import math functions for trigonometric calculations in movement and physics
 from math import sin, cos, atan2, hypot
 
+# Import level selection menu functionality
 from scripts.level_selection import level_selection
+# Import main menu functionality for player count selection
 from scripts.main_menu import main_menu
+# Import constants, button utilities, and general utility functions
 from scripts import consts, button, util
+# Import asset manager for loading and managing game assets
 from scripts.assets import asset_manager
 
+# Open and load game configuration from JSON file
 with open("config.json", "r") as f:
+    # Parse the JSON configuration data
     config = json.load(f)
+    # Extract fullscreen setting from configuration
     fullscreen = config["auto_fullscreen"]
+    # Extract vsync setting from configuration
     vsync = config["vsync"]
 
+# Create the main game window with specified dimensions and vsync setting
 screen = pg.display.set_mode((consts.W, consts.H), vsync=vsync)
+# Set the window title to identify the game
 pg.display.set_caption("SuperMuki")
 
+# Load all player sprite images using the asset manager
 asset_manager.load_player_imgs("player")
 
 
+# Define the main Game class that manages game state and settings
 class Game:
+    # Initialize the game with default settings and state variables
     def __init__(self):
+        # Set the background color for GUI elements (dark blue)
         self.gui_rgb = (0, 0, 80)
+        # Define the total number of levels available in the game
         self.num_of_levels = 10
+        # Set the current level number (starting at level 1)
         self.level = 1
+        # Flag to indicate if a level should be loaded from the level selection menu
         self.load_level_bool = False
+        # Flag to track if a level has been selected in the level selection menu
         self.level_selected = False
 
+        # Set the number of players (1 or 2 player mode)
         self.players = 1
+        # Flag to temporarily stop player movement (used during transitions)
         self.stop_player_move = False
+        # Store the respawn coordinates where players will revive after death
         self.respawn_point = (0.0, 0.0)
 
+        # Setting to enable/disable player sprite rotation during jumps
         self.flip_when_jump = True
+        # Setting to show/hide death counter display
         self.show_deaths = True
 
+        # Cheat mode flag that allows players to fly through levels
         self.flying = False
 
+    # Method to reset the game timer (currently not used in main game)
     def reset_timer(self):
+        # Reset timer values to zero (milliseconds, seconds, minutes)
         self.t_mval, self.t_sec, self.t_min = 0, 0, 0
 
+    # Method to reset death count for all players and respawn them
     def reset_deaths(self):
+        # Loop through all active players
         for player in players:
+            # Respawn the player at the current respawn point
             player.respawn()
+            # Reset their death counter to zero
             player.deaths = 0
 
+    # Method to display and handle the color customization menu for players
     def color_selection(self):
+        # Flag to control the color selection menu loop
         c_s = True
+        # Define color bar lines for player 1 (RGB sliders)
         lines = [
             ["red", 200, 300, 450],
             ["green", 200, 410, 450],
             ["blue", 200, 520, 450]
         ]
 
+        # Check if this is a 2-player game to add color bars for player 2
         if game.players == 2:
+            # Add red color bar for player 2 on the right side of screen
             lines.append(["red",   consts.W-450, 300, consts.W-200])
+            # Add green color bar for player 2 on the right side of screen
             lines.append(["green", consts.W-450, 410, consts.W-200])
+            # Add blue color bar for player 2 on the right side of screen
             lines.append(["blue",  consts.W-450, 520, consts.W-200])
 
+        # Create list of color control buttons for player 1 (RGB sliders)
         c_b1 = [button.p1_red, button.p1_green, button.p1_blue]
+        # Create list of color control buttons for player 2 (RGB sliders)
         c_b2 = [button.p2_red, button.p2_green, button.p2_blue]
 
+        # Get rectangle reference for the confirmation button
         confirm_r = button.confirm_c.rect
+        # Create surface for the confirmation button with matching dimensions
         confirm_s = pg.Surface((confirm_r.width, confirm_r.height))
 
+        # Main color selection menu loop
         while c_s:
+            # Limit frame rate to target FPS for smooth performance
             consts.clock.tick(consts.FPS)
+            # Fill screen with dark gray background color
             screen.fill((50, 50, 50))
+            # Get current mouse cursor position for button interaction
             pos = pg.mouse.get_pos()
+            # Render the confirmation button with gray color and hover effects
             button.colored_b(confirm_s, confirm_r, [80, 80, 80], pos)
+            # Draw the confirmation button surface onto the screen
             screen.blit(confirm_s, confirm_r)
+            # Draw "Done" text centered on the confirmation button
             util.draw_text(
                 screen, True, 30, "Done", "white",
                 confirm_r.centerx, confirm_r.centery
             )
 
+            # Draw color slider lines for RGB color selection
             for li in lines:
+                # Draw horizontal line for each color component (R, G, or B)
                 pg.draw.line(screen, li[0], [li[1], li[2]], [
                     li[3], li[2]], 7)
 
+            # Draw color control buttons for player 1
             for bu1 in c_b1:
                 bu1.draw(screen)
             if game.players == 2:
