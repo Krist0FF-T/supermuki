@@ -442,125 +442,197 @@ def pause():
             load_level(1)
 
 
+# Function to draw game statistics and information on the screen during gameplay
 def draw_stats():
+    # Draw current level number in the top-left corner
     util.draw_text(screen, False, 30, f"level {game.level}", "white", 15, 15)
 
+    # Check if fly mode (cheat) is enabled and display indicator
     if game.flying:
+        # Draw "fly" text centered at the top to indicate cheat mode is active
         util.draw_text(screen, True, 20, "fly", "white", consts.CX, 30)
 
+    # Check if death counter display is enabled
     if game.show_deaths:
+        # Draw "deaths" label in the top-right area
         util.draw_text(screen, True, 30, "deaths", "white", consts.W - 80, 30)
+        # Handle single-player mode death counter
         if game.players == 1:
+            # Display player 1's death count using their custom color
             util.draw_text(
                 screen, True, 30, f"{player1.deaths}",
                 player1.color, consts.W - 80, 90
             )
 
+        # Handle two-player mode death counters
         elif game.players == 2:
+            # Display death count for each player
             for player in players:
+                # Display each player's death count using their custom color, positioned by player number
                 util.draw_text(
                     screen, True, 30, f"{player.deaths}",
                     player.color, consts.W-200+(80*player.num), 90
                 )
 
 
+# Define the Camera class for managing viewport and following players
 class Camera:
+    # Initialize camera with default position and targeting values
     def __init__(self):
+        # Current camera x position (horizontal offset)
         self.x = 0
+        # Target x position the camera should move toward
         self.target_x = 0
+        # Floating point x position for smooth interpolation
         self.float_x = 0
 
+        # Current camera y position (vertical offset)
         self.y = 0
+        # Target y position the camera should move toward
         self.target_y = 0
+        # Floating point y position for smooth interpolation
         self.float_y = 0
 
+        # Reference to preferred player for camera focus when players are far apart
         self.preferred: Player | None = None
 
+    # Method to update camera position based on player positions
     def update(self):
+        # Handle camera positioning for 2-player mode
         if game.players == 2:
+            # Calculate target position as midpoint between both players
             self.target_x = - (
                 player1.rect.centerx + player2.rect.centerx
             ) / 2 + consts.CX
 
+            # Calculate distance between players
             distance = abs(player1.rect.centerx - player2.rect.centerx)
+            # Check if players are too far apart for good camera framing
             far_apart = distance > consts.W - 300
 
+            # If players are far apart and there's a preferred player, focus on them
             if far_apart and self.preferred:
+                # Center camera on the preferred player instead of midpoint
                 self.target_x = -self.preferred.rect.centerx + consts.CX
 
             # self.target_y = -(
             #     (player1.rect.centery + player2.rect.centery) / 2
             # ) + consts.CY
 
+        # Handle camera positioning for single-player mode
         elif game.players == 1:
+            # Center camera on player 1
             self.target_x = -player1.rect.centerx + consts.CX
             # self.target_y = -player1.rect.centery + CY
 
+        # Smoothly interpolate camera x position toward target (5% per frame)
         self.float_x += (self.target_x - self.float_x)*0.05
+        # Convert to integer pixel position
         self.x = int(self.float_x)
 
+        # Smoothly interpolate camera y position toward target (5% per frame)
         self.float_y += (self.target_y - self.float_y)*0.05
+        # Convert to integer pixel position
         self.y = int(self.float_y)
 
+        # Prevent camera from scrolling too far to the right (past right edge of level)
         if self.x > 0:
+            # Clamp camera to right boundary
             self.x = 0
 
+        # Prevent camera from scrolling too far to the left (past left edge of level)
         if self.x < -4720:
+            # Clamp camera to left boundary (level width limit)
             self.x = -4720
 
 
+# Create the main camera instance for the game
 cam = Camera()
 
+# Player movement flags for player 1 (left and right movement)
 left,  right = False, False
+# Player movement flags for player 2 (left and right movement)
 left2, right2 = False, False
 
 
+# Define the Player class for character management and physics
 class Player:
+    # Initialize a new player with specified number (1 or 2)
     def __init__(self, num):
 
         # graphical -----
+        # Initialize empty list to store player sprite images
         self.images = []
+        # Copy all base player images from asset manager
         for img in asset_manager.player_images:
+            # Add each sprite frame to the player's image list
             self.images.append(img)
 
+        # Current animation frame index (1-3 for different poses)
         self.frame_index = 1
+        # Animation cooldown timer for controlling frame rate
         self.animation_cd = 0
 
+        # Player's custom RGB color values [red, green, blue]
         self.color = [255, 0, 0]
+        # Flag for horizontal sprite flipping based on direction
         self.flip = False
+        # Current rotation angle for jump animation
         self.rotation = 0
+        # Flag indicating if player sprite is currently rotating
         self.rotating = False
 
         # logical -------
+        # Player number (1 or 2) for identification
         self.num = num
+        # Flag indicating if player is "able to jump" (on ground)
         self.atj = False
+        # Rectangle for collision detection and positioning
         self.rect = self.images[0].get_rect()
+        # Direction player is facing (1 = right, -1 = left)
         self.direction = 1
 
         # - movement
+        # Horizontal movement speed in pixels per frame
         self.speed = consts.PLAYER_SPEED
+        # Horizontal knockback velocity from collisions
         self.knockback = 0
+        # Flag indicating if jump input is being held
         self.jump = False
+        # Vertical velocity for gravity and jumping
         self.vel_y = 0
 
         # - alive
+        # Flag indicating if player is currently alive
         self.alive = True
+        # Counter for number of times player has died
         self.deaths = 0
 
+    # Method to update player state and handle basic physics
     def update(self):
+        # Set sprite flip based on movement direction (left = flipped)
         self.flip = (self.direction == -1)
 
+        # Check if alive player has fallen below the level boundary
         if self.rect.bottom > consts.ROW*consts.TS and self.alive:
+            # Kill the player for falling out of bounds
             self.kill()
+            # Clamp position to bottom boundary
             self.rect.bottom = consts.ROW * consts.TS
 
+        # Check if dead player has fallen far enough to respawn
         if self.rect.top > consts.ROW*consts.TS and not self.alive:
+            # Respawn the player at the respawn point
             self.respawn()
 
+        # Prevent player from moving past left edge of level
         if self.rect.left < 0:
+            # Clamp position to left boundary
             self.rect.left = 0
 
+        # Prevent player from moving past right edge of level
         if self.rect.right > 6000:
+            # Clamp position to right boundary (level width limit)
             self.rect.right = 6000
 
     def move(self, left, right):
