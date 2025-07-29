@@ -635,71 +635,116 @@ class Player:
             # Clamp position to right boundary (level width limit)
             self.rect.right = 6000
 
+    # Method to handle player movement and physics based on input
     def move(self, left, right):
+        # Initialize movement deltas (change in position)
         dx = 0
         dy = 0
 
+        # Handle left movement input
         if self.alive and left and not right:
+            # Set this player as camera's preferred focus
             cam.preferred = self
+            # Apply leftward movement speed
             dx = -self.speed
+            # Update facing direction to left
             self.direction = -1
 
+        # Handle right movement input
         if self.alive and right and not left:
+            # Set this player as camera's preferred focus
             cam.preferred = self
+            # Apply rightward movement speed
             dx = self.speed
+            # Update facing direction to right
             self.direction = 1
 
+        # Handle jump input (works when flying or grounded)
         if self.jump and (game.flying or self.atj):
+            # Apply upward velocity for jump
             self.vel_y = -10
+            # Start rotation animation for jump
             self.rotating = True
             # print("e")
+            # Clear jump flag to prevent continuous jumping
             self.jump = False
 
+        # Handle walking animation when moving and grounded
         if left or right and self.atj:
+            # Increment animation timer
             self.animation_cd += 1
+            # Check if it's time to change animation frame
             if self.animation_cd >= 7:
+                # Animation frame mapping for walking cycle (alternates between frames 1 and 2)
                 e = {1: 2, 2: 1, 3: 1}
+                # Update to next frame in walking animation
                 self.frame_index = e[self.frame_index]
+                # Reset animation timer
                 self.animation_cd = 0
+        # Set idle pose when not moving
         else:
+            # Use frame 3 for standing still
             self.frame_index = 3
 
+        # Handle rotation animation for jumps or death
         if (self.rotating and game.flip_when_jump) or not self.alive:
+            # Rotate sprite by 15 degrees per frame
             self.rotation -= 15
             # print("rotating")
+            # Check if full rotation is complete
             if abs(self.rotation) > 355:
+                # Reset rotation and stop rotating
                 self.rotation = 0
                 self.rotating = False
 
+        # Apply vertical velocity to movement delta
         dy += self.vel_y
+        # Apply horizontal knockback to movement delta
         dx += self.knockback
+        # Flag to track if player lands on ground this frame
         now_on_ground = False
 
+        # Check collision with all collideable blocks in the level
         for block in collideblocks:
+            # Skip collision checks if player is dead
             if not self.alive:
                 break
 
+            # Handle collision with moving platforms
             if block[2] == "moving":
+                # Check if player will collide with moving platform
                 if block[0].colliderect(
                     self.rect.x + dx, self.rect.y + dy + 10,
                     self.rect.width, self.rect.height
                 ) and self.vel_y > -1:
+                    # Check if player is falling onto the platform
                     if self.vel_y > 0:
+                        # Stop vertical movement and land on platform
                         self.vel_y = 0
+                        # Mark player as able to jump (grounded)
                         self.atj = True
+                        # Mark that player is on ground this frame
                         now_on_ground = True
+                        # Adjust vertical position to sit on top of platform
                         dy = block[0].top - self.rect.bottom
 
+                    # Apply platform's movement to player
                     dx = block[3]["speed"] * block[3]["direction"]
 
+            # Handle collision with solid blocks (walls, floors, etc.)
             if block[2] in solid_blocks:
+                # Check for horizontal collision
                 if block[0].colliderect(
                     self.rect.x + dx, self.rect.y,
                     self.rect.width, self.rect.height
                 ):
+                    # Special handling for pushable boxes
                     if block[2] == "box":  # and self.atj:
+                        # Reduce player's horizontal movement when pushing box
                         dx = int(dx*0.3)
+                        # Flag to check if box can be pushed without hitting other blocks
                         x_collide = False
+                        # Check if box would collide with other blocks when pushed
                         for col_block in blocks:
                             if col_block != block:
                                 if col_block[0].colliderect(
@@ -1338,52 +1383,86 @@ while running:
                 right = False
 
             # player 2
+            # Check if UP arrow key was released to stop player 2 jumping
             if event.key == pg.K_UP:
                 player2.jump = False
+            # Check if RIGHT arrow key was released to stop player 2 moving right
             if event.key == pg.K_RIGHT:
                 right2 = False
+            # Check if LEFT arrow key was released to stop player 2 moving left
             if event.key == pg.K_LEFT:
                 left2 = False
 
+    # Handle pause menu activation
     if should_pause:
+        # Stop all player movement during pause
         game.stop_player_move = True
+        # Reset level loading flag
         game.load_level_bool = False
+        # Show pause menu
         pause()
+        # Check if user wants to load a different level
         if game.load_level_bool:
+            # Show level selection menu
             level_selection(screen, game)
+            # Load selected level if one was chosen
             if game.level_selected:
                 load_level(game.level)
+                # Reset level loading flag
                 game.load_level_bool = False
+        # Reset pause flag
         should_pause = False
 
+    # Handle stopping player movement (during transitions, etc.)
     if game.stop_player_move:
+        # Clear all movement input flags
         left,  right = False, False
         left2, right2 = False, False
+        # Reset physics state for all players
         for p in players:
+            # Stop vertical movement
             p.vel_y = 0
+            # Clear jump input
             p.jump = False
+            # Clear knockback effects
             p.knockback = 0
+        # Reset the stop movement flag
         game.stop_player_move = False
 
-    # update
+    # update - Update all game systems and physics
+    # Update player positions, physics, and state
     update_players()
+    # Update laser collision detection
     update_lasers()
+    # Update block behaviors (moving platforms, enemies, etc.)
     update_blocks()
+    # Update camera position and following logic
     cam.update()
+    # Update bullet positions and collision
     update_bullets()
 
-    # render
+    # render - Draw all game elements to the screen
+    # Fill background with sky color
     screen.fill(consts.bg_color)
 
+    # Draw background grid lines for visual depth
     draw_bg_lines()
+    # Draw all level blocks (platforms, walls, enemies, etc.)
     draw_blocks()
+    # Draw player sprites
     draw_players()
+    # Draw projectile bullets
     draw_bullets()
+    # Draw laser beams
     draw_lasers()
+    # Draw UI elements (level info, death counter, etc.)
     draw_stats()
 
+    # Update the display to show all rendered elements
     pg.display.update()
 
 
+# Clean up and exit pygame
 pg.quit()
+# Exit the program
 sys.exit()
