@@ -37,244 +37,39 @@ class Game:
 
         self.flying = False
 
-    def reset_timer(self):
-        self.t_mval, self.t_sec, self.t_min = 0, 0, 0
+    def main_menu(self):
+        n = menu.main_menu(screen)
+        # n = len(config.controls)
+        self.players = [Player(i + 1) for i in range(n)]
 
-    def reset_deaths(self):
-        for player in players:
-            player.respawn()
-            player.deaths = 0
+    def pause(self):
+        for player in self.players:
+            player.stop()
+
+        ret = menu.pause_menu(screen)
+        if ret == menu.code.LEVEL_SELECT:
+            level = menu.level_selection(screen)
+            load_level(level)
+
+        elif ret == menu.code.MAIN_MENU:
+            self.main_menu()
+
+            for player in self.players:
+                player.deaths = 0
+
+            self.color_selection()
+            level = menu.level_selection(screen)
+            load_level(level)
+
+        elif ret == menu.code.COLOR_SELECT:
+            self.color_selection()
 
     def color_selection(self):
-        c_s = True
-        lines = [
-            ["red", 200, 300, 450],
-            ["green", 200, 410, 450],
-            ["blue", 200, 520, 450]
-        ]
-
-        if game.players == 2:
-            lines.append(["red",   consts.W-450, 300, consts.W-200])
-            lines.append(["green", consts.W-450, 410, consts.W-200])
-            lines.append(["blue",  consts.W-450, 520, consts.W-200])
-
-        c_b1 = [button.p1_red, button.p1_green, button.p1_blue]
-        c_b2 = [button.p2_red, button.p2_green, button.p2_blue]
-
-        confirm_r = button.confirm_c.rect
-        confirm_s = pg.Surface((confirm_r.width, confirm_r.height))
-
-        while c_s:
-            consts.clock.tick(consts.FPS)
-            screen.fill((50, 50, 50))
-            pos = pg.mouse.get_pos()
-            button.colored_b(confirm_s, confirm_r, [80, 80, 80], pos)
-            screen.blit(confirm_s, confirm_r)
-            util.draw_text(
-                screen, True, 30, "Done", "white",
-                confirm_r.centerx, confirm_r.centery
-            )
-
-            for li in lines:
-                pg.draw.line(screen, li[0], [li[1], li[2]], [
-                    li[3], li[2]], 7)
-
-            for bu1 in c_b1:
-                bu1.draw(screen)
-            if game.players == 2:
-                for bu2 in c_b2:
-                    bu2.draw(screen)
-
-            for i in range(3):
-                if c_b1[i].rect.left < 200:
-                    c_b1[i].rect.left = 200
-                if c_b1[i].rect.right > 450:
-                    c_b1[i].rect.right = 450
-
-                if game.players == 2:
-                    if c_b2[i].rect.left < consts.W-450:
-                        c_b2[i].rect.left = consts.W-450
-                    if c_b2[i].rect.right > consts.W-200:
-                        c_b2[i].rect.right = consts.W-200
-
-                player1.color[i] = c_b1[i].rect.centerx - 200
-                if game.players == 2:
-                    player2.color[i] = c_b2[i].rect.centerx - (consts.W-450)
-
-            player1.images = []
-            for c_img in asset_manager.player_images:
-                p_img = util.palette_swap(c_img, c_img.get_at(
-                    (0, 0)), player1.color).convert()
-                p_img.set_colorkey((0, 0, 0))
-                player1.images.append(p_img)
-
-            if game.players == 2:
-                player2.images = []
-                for c_img in asset_manager.player_images:
-                    p_img = util.palette_swap(c_img, c_img.get_at(
-                        (0, 0)), player2.color).convert()
-                    p_img.set_colorkey((0, 0, 0))
-                    player2.images.append(p_img)
-
-            p1_pv_image = pg.transform.scale(player1.images[2], (80, 80))
-            p1_pv_rect = p1_pv_image.get_rect()
-            p1_pv_rect.center = 350, 120
-
-            p2_pv_image = pg.transform.scale(player2.images[2], (80, 80))
-            p2_pv_rect = p2_pv_image.get_rect()
-            p2_pv_rect.center = util.W - 350, 120
-
-            screen.blit((p1_pv_image), p1_pv_rect)
-            if game.players == 2:
-                screen.blit((p2_pv_image), p2_pv_rect)
-
-            util.draw_text(
-                screen, True, 30, str(player1.color),
-                "white", p1_pv_rect.centerx, consts.H - 100
-            )
-
-            if game.players == 2:
-                util.draw_text(
-                    screen, True, 30, str(player2.color),
-                    "white", p2_pv_rect.centerx, consts.H - 100
-                )
-
-            pg.display.update()
-
-            if pg.mouse.get_pressed()[0]:
-                for bu in c_b1:
-                    if pg.Rect(
-                        bu.rect.x-25,
-                        bu.rect.y-25,
-                        bu.rect.width+50,
-                        bu.rect.height+50
-                    ).collidepoint(pos):
-                        bu.rect.centerx = pos[0]
-                    if bu.rect.left < 200:
-                        bu.rect.left = 200
-                    if bu.rect.right > 450:
-                        bu.rect.right = 450
-
-                if game.players == 2:
-                    for bu in c_b2:
-                        if pg.Rect(
-                            bu.rect.x - 20,
-                            bu.rect.y - 20,
-                            bu.rect.width + 40,
-                            bu.rect.height + 40
-                        ).collidepoint(pos):
-                            bu.rect.centerx = pos[0]
-
-                        if bu.rect.left < consts.W - 450:
-                            bu.rect.left = consts.W - 450
-
-                        if bu.rect.right > consts.W - 200:
-                            bu.rect.right = consts.W - 200
-
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pg.quit()
-                    sys.exit()
-                if event.type == pg.KEYDOWN:
-                    if event.key in [pg.K_SPACE, pg.K_ESCAPE]:
-                        c_s = False
-
-                if event.type == pg.MOUSEBUTTONDOWN:
-                    if button.confirm_c.rect.collidepoint(pos):
-                        c_s = False
-
-
-game = Game()
-
-
-def pause():
-    # reset_time_b = Button(0, 100, "simple_b2.png", 12)
-
-    resume_r = button.resume_button.rect
-    resume_s = pg.Surface((resume_r.width, resume_r.height))
-
-    quit_r = button.quit_button.rect
-    quit_s = pg.Surface((quit_r.width, quit_r.height))
-    mm = False  # enter main menu
-
-    paused = True
-    while paused:
-        pos = pg.mouse.get_pos()
-        consts.clock.tick(consts.FPS)
-        screen.fill(game.gui_rgb)
-
-        # draw buttons
-        button.load_lvl_b.draw(screen)
-        button.color_s_b.draw(screen)
-
-        button.mainm_b.draw(screen)
-
-        button.green_button(resume_s, resume_r, pos)
-        screen.blit(resume_s, resume_r)
-
-        button.green_button(quit_s, quit_r, pos)
-        screen.blit(quit_s, quit_r)
-
-        # draw text
-        util.draw_text(screen, True, 100, "Paused!",
-                       "white", consts.CX, 150)
-        util.draw_text(
-            screen, True, 45, "Resume (C)", "white",
-            button.resume_button.rect.centerx,
-            button.resume_button.rect.centery
-        )
-        util.draw_text(
-            screen, True, 45, "Quit (Q)", "white",
-            button.quit_button.rect.centerx, button.quit_button.rect.centery
-        )
-
-        pg.display.update()
-
-        # events
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                sys.exit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_q:
-                    pg.quit()
-                if event.key == pg.K_ESCAPE or event.key == pg.K_c:
-                    paused = False
-
-            if event.type == pg.MOUSEBUTTONUP:
-                if resume_r.collidepoint(pos):
-                    paused = False
-                if quit_r.collidepoint(pos):
-                    pg.quit()
-                    sys.exit()
-                if button.load_lvl_b.rect.collidepoint(pos):
-                    game.load_level_bool = True
-                    paused = False
-                if button.color_s_b.rect.collidepoint(pos):
-                    game.color_selection()
-                if button.mainm_b.rect.collidepoint(pos):
-                    paused = False
-                    mm = True
-
-    if mm:
-        main_menu(screen, game)
-        if game.players == 2:
-            if len(players) < 2:
-                players.append(player2)
-        else:
-            players.clear()
-            players.append(player1)
-
-        for p in players:
-            p.deaths = 0
-        game.color_selection()
-        game.level_selected = False
-        level_selection(screen, game)
-
-        if game.level_selected:
-            load_level(game.level)
-        else:
-            load_level(1)
+        colors = [p.color for p in self.players]
+        menu.color_selection(screen, colors)
+        for player in self.players:
+            print(player.color)
+            player.images = util.recolor_player(player.color)
 
 
 def draw_stats():
@@ -656,8 +451,9 @@ def load_level(num, reload=False):
         for p in players:
             p.rect.topleft = game.respawn_point
 
-    if game.level > game.num_of_levels:
-        level_selection(screen, game)
+    if not exists(file_name):
+        level = menu.level_selection(screen)
+        load_level(level)
         return
 
     blocks.clear()
@@ -1038,19 +834,19 @@ while running:
             if event.key == pg.K_k:
                 game.flying = not game.flying
 
-            if event.key == pg.K_r:
+            elif event.key == pg.K_r:
                 reload = not event.mod & pg.KMOD_LSHIFT
-                load_level(game.level, reload)
+                load_level(reload=reload)
 
-            if event.key == pg.K_F2:
+            elif event.key == pg.K_F2:
                 util.screenshot()
-                should_pause = True
+                game.pause()
 
-            if event.key in [pg.K_ESCAPE, pg.K_SPACE]:
-                should_pause = True
+            elif event.key in [pg.K_ESCAPE, pg.K_SPACE]:
+                game.pause()
 
-            if event.key == pg.K_F11:
-                fullscreen = not fullscreen
+            elif event.key == pg.K_F11:
+                config.fullscreen = not config.fullscreen
                 pg.display.toggle_fullscreen()
 
             # player 1

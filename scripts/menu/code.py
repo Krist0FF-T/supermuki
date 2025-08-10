@@ -1,0 +1,4 @@
+# return codes
+MAIN_MENU = 0
+LEVEL_SELECT = 1
+COLOR_SELECT = 2
