@@ -781,57 +781,66 @@ def update_block(block):
                 # game_over(f"P{p.num} jumped into a spike")
 
 
-def draw_players():
-    player1.draw()
-    if game.players == 2:
-        player2.draw()
+def draw():
+    screen.fill(consts.GAME_BG_COLOR)
 
+    draw_bg_lines()
 
-def update_players():
-    player1.move(left, right)
-    player1.update()
+    for block in blocks:
+        draw_block(block)
 
-    if game.players == 2:
-        player2.move(left2, right2)
-        player2.update()
+    for player in game.players:
+        player.draw()
 
+    for bullet in bullets:
+        if not - consts.BULLET_R < bullet[0].x + game.camera.x < consts.BULLET_R + consts.W:
+            continue
 
-def update_lasers():
-    for laser in lasers:
-        for player in players:
-            if player.alive and player.rect.clipline(laser):
-                player.kill()
+        pos = (bullet[0].x + game.camera.x, bullet[0].y)
+        pg.draw.circle(screen, "blue", pos, consts.BULLET_R)
 
-
-def draw_lasers():
     for laser in lasers:
         pg.draw.line(
             screen,
             "red",
-            (laser[0][0]+cam.x, laser[0][1]+cam.y),
-            (laser[1][0]+cam.x, laser[1][1]+cam.y),
-            5
+            (laser[0][0] + game.camera.x, laser[0][1] + game.camera.y),
+            (laser[1][0] + game.camera.x, laser[1][1] + game.camera.y),
+            5,
         )
 
+    draw_stats()
 
-game.color_selection()
-level_selection(screen, game)
-load_level(game.level)
+    pg.display.update()
 
-should_pause = False
-running = True
-while running:
-    if not vsync:
-        consts.clock.tick(consts.FPS)
 
-    # handle input
-    for event in pg.event.get():
+def update():
+    for player in game.players:
+        player.move()
+        player.update()
+
+    for laser in lasers:
+        for player in game.players:
+            if player.alive and player.rect.clipline(laser):
+                player.kill()
+
+    for block in blocks:
+        update_block(block)
+
+    for bullet in bullets:
+        update_bullet(bullet)
+
+    game.camera.update()
+
+
+def handle_events():
+    events = pg.event.get()
+    for event in events:
         if event.type == pg.QUIT:
-            running = False
+            util.close()
 
         if event.type == pg.KEYDOWN:
-
             if event.key == pg.K_k:
+                # print(len(collideblocks) / len(blocks))
                 game.flying = not game.flying
 
             elif event.key == pg.K_r:
@@ -849,78 +858,47 @@ while running:
                 config.fullscreen = not config.fullscreen
                 pg.display.toggle_fullscreen()
 
-            # player 1
-            if event.key == pg.K_w:
-                player1.jump = True
-            if event.key == pg.K_a:
-                left = True
-            if event.key == pg.K_d:
-                right = True
+        if event.type in [pg.KEYDOWN, pg.KEYUP]:
+            down = event.type == pg.KEYDOWN
 
-            # player 2
-            if event.key == pg.K_UP:
-                player2.jump = True
-            if event.key == pg.K_RIGHT:
-                right2 = True
-            if event.key == pg.K_LEFT:
-                left2 = True
-
-        if event.type == pg.KEYUP:
-            # player 1
-            if event.key == pg.K_w:
-                player1.jump = False
-            if event.key == pg.K_a:
-                left = False
-            if event.key == pg.K_d:
-                right = False
-
-            # player 2
-            if event.key == pg.K_UP:
-                player2.jump = False
-            if event.key == pg.K_RIGHT:
-                right2 = False
-            if event.key == pg.K_LEFT:
-                left2 = False
-
-    if should_pause:
-        game.stop_player_move = True
-        game.load_level_bool = False
-        pause()
-        if game.load_level_bool:
-            level_selection(screen, game)
-            if game.level_selected:
-                load_level(game.level)
-                game.load_level_bool = False
-        should_pause = False
-
-    if game.stop_player_move:
-        left,  right = False, False
-        left2, right2 = False, False
-        for p in players:
-            p.vel_y = 0
-            p.jump = False
-            p.knockback = 0
-        game.stop_player_move = False
-
-    # update
-    update_players()
-    update_lasers()
-    update_blocks()
-    cam.update()
-    update_bullets()
-
-    # render
-    screen.fill(consts.bg_color)
-
-    draw_bg_lines()
-    draw_blocks()
-    draw_players()
-    draw_bullets()
-    draw_lasers()
-    draw_stats()
-
-    pg.display.update()
+            for p, c in zip(game.players, config.controls):
+                if event.key == c[0]:
+                    p.left = down
+                elif event.key == c[1]:
+                    p.right = down
+                elif event.key == c[2]:
+                    p.jump = down
 
 
-pg.quit()
-sys.exit()
+if __name__ == "__main__":
+    screen = pg.display.set_mode((consts.W, consts.H), vsync=config.vsync)
+    pg.display.set_caption("SuperMuki")
+
+    asset_manager.load_player_imgs()
+    asset_manager.set_audio_volume(config.audio_volume)
+    solid_blocks = ["grass", "dirt", "shooter", "falling", "moving", "box", "enemy"]
+    moving_blocks = ["moving", "enemy"]
+
+    blocks = []
+    bullets = []
+    lasers = []
+
+    bg_lines = []
+    for i in range(22):
+        x = i * 4 * consts.W / 25
+        bg_lines.append([[x - consts.H, 0], [x, consts.H]])
+
+    game = Game()
+    game.main_menu()
+    game.color_selection()
+    level = menu.level_selection(screen)
+    load_level(1 if level is None else level)
+
+    while True:
+        if not config.vsync:
+            consts.clock.tick(consts.FPS)
+
+        handle_events()
+        update()
+        draw()
+
