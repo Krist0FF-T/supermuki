@@ -55,7 +55,7 @@
 # 2025-06-29
 - simplify and optimize player controls logic
 
-# 2025-07-19 (committed on 08-10)
+# 2025-07-19
 - asset manager: actually lazy-load
     - (loads assets on first use)
     - (applies to sounds, fonts, images)
@@ -73,3 +73,6 @@
     - move menus to `scripts/menu`
 - (+ other stuff I forgot to mention)
 
+# 2025-08-10
+- git: commit changes since 2025-06-29
+- move screenshots out of repo - use GitHub assets instead
