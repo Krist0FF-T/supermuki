@@ -634,18 +634,6 @@ def draw_bg_lines():
             )
 
 
-def add_bg_block(x, y, name):
-    img = asset_manager.get_image(f"bg_blocks/{name}.png").convert()
-    img.set_colorkey("black")
-
-    image = pg.transform.scale(img, (consts.TS, consts.TS))
-
-    rect = image.get_rect()
-    rect.topleft = x*consts.TS, y*consts.TS
-    bg_block = [rect, image, name]
-    bg_blocks.append(bg_block)
-
-
 def add_block(x, y, name, properties={}):
     img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()
 
@@ -731,16 +719,6 @@ def load_level(num, reload=False):
 
             elif col == "g":
                 add_block(j, i, "grass")
-                if not reload:
-                    if i > 0 and tilemap[i-1][j] == ".":
-                        rn = random.random()
-                        if rn < 0.1:
-                            add_bg_block(j, i-1,   "grass")
-                        elif rn < 0.2:
-                            add_bg_block(j, i-1, "flower")
-                        # elif rn < 0.3:
-                        #     addBgBlock(j, i-1, "smiley")
-
             elif col == "d":
                 add_block(j, i, "dirt")
             elif col == "f":
