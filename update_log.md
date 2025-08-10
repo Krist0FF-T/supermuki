@@ -46,3 +46,30 @@
 - aliases for better readibility in update_block
 - make respawn point global
 
+# 2025-02-25
+- remove GUI settings (use config.json instead)
+- remove devmode
+- re-order main loop to reduce input lag
+- avoid expensive trigonometric functions (atan2, sin, cos)
+
+# 2025-06-29
+- simplify and optimize player controls logic
+
+# 2025-07-19 (committed on 08-10)
+- asset manager: actually lazy-load
+    - (loads assets on first use)
+    - (applies to sounds, fonts, images)
+- utils: remove unused (keystrokes, move_towards_rect, draw_image)
+- config: json -> py
+    - make controls configurable
+- map editor: refactor
+    - integrate (use consts, util, assets)
+- blocks:
+    - spike: kill: always (not just when falling)
+    - trampoline: bump: only when jumping
+    - checkpoint: activation: only by alive player
+- menus:
+    - separate files (pause, color selection)
+    - move menus to `scripts/menu`
+- (+ other stuff I forgot to mention)
+
