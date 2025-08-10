@@ -1,39 +1,22 @@
 import random
+import os
+from math import hypot
+
 import pygame as pg
-import json
-import sys
-from math import sin, cos, atan2, hypot
+from pygame import Vector2 as Vec
 
-from scripts.level_selection import level_selection
-from scripts.main_menu import main_menu
-from scripts import consts, button, util
+from scripts import consts, util, menu
 from scripts.assets import asset_manager
-
-with open("config.json", "r") as f:
-    config = json.load(f)
-    fullscreen = config["auto_fullscreen"]
-    vsync = config["vsync"]
-
-screen = pg.display.set_mode((consts.W, consts.H), vsync=vsync)
-pg.display.set_caption("SuperMuki")
-
-asset_manager.load_player_imgs("player")
+import config
 
 
 class Game:
     def __init__(self):
-        self.gui_rgb = (0, 0, 80)
-        self.num_of_levels = 10
-        self.level = 1
-        self.load_level_bool = False
-        self.level_selected = False
+        self.current_level = 1
 
-        self.players = 1
-        self.stop_player_move = False
+        self.players: list[Player] = []
+        self.camera = Camera()
         self.respawn_point = (0.0, 0.0)
-
-        self.flip_when_jump = True
-        self.show_deaths = True
 
         self.flying = False
 
@@ -73,25 +56,23 @@ class Game:
 
 
 def draw_stats():
-    util.draw_text(screen, False, 30, f"level {game.level}", "white", 15, 15)
+    util.draw_text(screen, False, 30, f"level {game.current_level}", "white", 15, 15)
 
     if game.flying:
         util.draw_text(screen, True, 20, "fly", "white", consts.CX, 30)
 
-    if game.show_deaths:
+    if config.show_deaths:
         util.draw_text(screen, True, 30, "deaths", "white", consts.W - 80, 30)
-        if game.players == 1:
+        for player in game.players:
             util.draw_text(
-                screen, True, 30, f"{player1.deaths}",
-                player1.color, consts.W - 80, 90
+                screen,
+                True,
+                30,
+                f"{player.deaths}",
+                player.color,
+                consts.W - 200 + (80 * player.num),
+                90,
             )
-
-        elif game.players == 2:
-            for player in players:
-                util.draw_text(
-                    screen, True, 30, f"{player.deaths}",
-                    player.color, consts.W-200+(80*player.num), 90
-                )
 
 
 class Camera:
@@ -106,13 +87,18 @@ class Camera:
 
         self.preferred: Player | None = None
 
-    def update(self):
-        if game.players == 2:
-            self.target_x = - (
-                player1.rect.centerx + player2.rect.centerx
-            ) / 2 + consts.CX
+    def on_screen(self, rect: pg.Rect) -> bool:
+        return -self.x < rect.right and rect.left < -self.x + 100 + consts.W
 
-            distance = abs(player1.rect.centerx - player2.rect.centerx)
+    def update(self):
+        p1 = game.players[0]
+        p2 = game.players[1] if len(game.players) >= 2 else None
+        if p2 is not None:
+            self.target_x = (
+                -(p1.rect.centerx + p2.rect.centerx) / 2 + consts.CX
+            )
+
+            distance = abs(p1.rect.centerx - p2.rect.centerx)
             far_apart = distance > consts.W - 300
 
             if far_apart and self.preferred:
@@ -122,14 +108,14 @@ class Camera:
             #     (player1.rect.centery + player2.rect.centery) / 2
             # ) + consts.CY
 
-        elif game.players == 1:
-            self.target_x = -player1.rect.centerx + consts.CX
+        else:
+            self.target_x = -p1.rect.centerx + consts.CX
             # self.target_y = -player1.rect.centery + CY
 
-        self.float_x += (self.target_x - self.float_x)*0.05
+        self.float_x += (self.target_x - self.float_x) * 0.05
         self.x = int(self.float_x)
 
-        self.float_y += (self.target_y - self.float_y)*0.05
+        self.float_y += (self.target_y - self.float_y) * 0.05
         self.y = int(self.float_y)
 
         if self.x > 0:
@@ -139,52 +125,62 @@ class Camera:
             self.x = -4720
 
 
-cam = Camera()
-
-left,  right = False, False
-left2, right2 = False, False
 
 
 class Player:
     def __init__(self, num):
-
         # graphical -----
-        self.images = []
-        for img in asset_manager.player_images:
-            self.images.append(img)
-
-        self.frame_index = 1
-        self.animation_cd = 0
-
         self.color = [255, 0, 0]
         self.flip = False
         self.rotation = 0
         self.rotating = False
 
+        self.frame_index = 1
+        self.animation_cd = 0
+        self.images = util.recolor_player(self.color)
+
         # logical -------
         self.num = num
-        self.atj = False
-        self.rect = self.images[0].get_rect()
+        self.able_to_jump = False
+        self.rect: pg.Rect = self.images[0].get_rect()
         self.direction = 1
 
-        # - movement
+        # - movement ----
         self.speed = consts.PLAYER_SPEED
         self.knockback = 0
-        self.jump = False
         self.vel_y = 0
+        # -- controls ---
+        self.jump = False
+        self.left = False
+        self.right = False
 
         # - alive
         self.alive = True
         self.deaths = 0
 
     def update(self):
-        self.flip = (self.direction == -1)
+        self.flip = self.direction == -1
 
-        if self.rect.bottom > consts.ROW*consts.TS and self.alive:
+        if self.left or self.right and self.able_to_jump:
+            self.animation_cd += 1
+            if self.animation_cd >= 7:
+                self.frame_index = 2 if self.frame_index == 1 else 1
+                self.animation_cd = 0
+        else:
+            self.frame_index = 3
+
+        if (self.rotating and config.flip_when_jump) or not self.alive:
+            self.rotation -= 15
+            # print("rotating")
+            if abs(self.rotation) > 355:
+                self.rotation = 0
+                self.rotating = False
+
+        if self.rect.bottom > consts.ROW * consts.TS and self.alive:
             self.kill()
             self.rect.bottom = consts.ROW * consts.TS
 
-        if self.rect.top > consts.ROW*consts.TS and not self.alive:
+        if self.rect.top > consts.ROW * consts.TS and not self.alive:
             self.respawn()
 
         if self.rect.left < 0:
@@ -193,127 +189,125 @@ class Player:
         if self.rect.right > 6000:
             self.rect.right = 6000
 
-    def move(self, left, right):
+    def move(self):
         dx = 0
         dy = 0
 
-        if self.alive and left and not right:
-            cam.preferred = self
-            dx = -self.speed
-            self.direction = -1
+        self.vel_y += consts.GRAVITY
 
-        if self.alive and right and not left:
-            cam.preferred = self
-            dx = self.speed
-            self.direction = 1
+        movement_dir = self.right - self.left
+        if self.alive and movement_dir != 0:
+            game.camera.preferred = self
+            dx = movement_dir * self.speed
+            self.direction = movement_dir
 
-        if self.jump and (game.flying or self.atj):
-            self.vel_y = -10
+        if self.alive and self.jump and (game.flying or self.able_to_jump):
+            self.vel_y = consts.JUMP_VEL
             self.rotating = True
-            # print("e")
             self.jump = False
-
-        if left or right and self.atj:
-            self.animation_cd += 1
-            if self.animation_cd >= 7:
-                e = {1: 2, 2: 1, 3: 1}
-                self.frame_index = e[self.frame_index]
-                self.animation_cd = 0
-        else:
-            self.frame_index = 3
-
-        if (self.rotating and game.flip_when_jump) or not self.alive:
-            self.rotation -= 15
-            # print("rotating")
-            if abs(self.rotation) > 355:
-                self.rotation = 0
-                self.rotating = False
 
         dy += self.vel_y
         dx += self.knockback
-        now_on_ground = False
 
-        for block in collideblocks:
+        for block in blocks:
             if not self.alive:
                 break
 
-            if block[2] == "moving":
-                if block[0].colliderect(
-                    self.rect.x + dx, self.rect.y + dy + 10,
-                    self.rect.width, self.rect.height
-                ) and self.vel_y > -1:
+            b_rect, _, b_name, b_props = block
+
+            if b_name not in consts.SOLID_BLOCKS:
+                continue
+
+            if b_name == "moving":
+                if (
+                    b_rect.colliderect(
+                        self.rect.x + dx,
+                        self.rect.y + dy + 10,
+                        self.rect.width,
+                        self.rect.height,
+                    )
+                    and self.vel_y > -1
+                ):
                     if self.vel_y > 0:
                         self.vel_y = 0
-                        self.atj = True
-                        now_on_ground = True
-                        dy = block[0].top - self.rect.bottom
+                        self.able_to_jump = True
+                        dy = b_rect.top - self.rect.bottom
 
-                    dx = block[3]["speed"] * block[3]["direction"]
+                    dx = b_props["speed"] * b_props["direction"]
 
-            if block[2] in solid_blocks:
-                if block[0].colliderect(
-                    self.rect.x + dx, self.rect.y,
-                    self.rect.width, self.rect.height
-                ):
-                    if block[2] == "box":  # and self.atj:
-                        dx = int(dx*0.3)
-                        x_collide = False
-                        for col_block in blocks:
-                            if col_block != block:
-                                if col_block[0].colliderect(
-                                    block[0][0] + dx, block[0][1],
-                                    consts.TS, consts.TS
-                                ) or block[0].x < 0:
-                                    x_collide = True
+            if b_rect.colliderect(
+                (self.rect.x + dx, self.rect.y),
+                (self.rect.width, self.rect.height),
+            ):
+                self.knockback = 0
+                if not (b_name == "box" and self.able_to_jump):
+                    dx = 0
+                    continue
 
-                        if x_collide:
-                            dx = 0
-                        # block[0].x += dx
-                        block[3]["dx"] += dx
+                dx = int(dx * 0.3)
+                x_collide = False
+                for col_block in blocks:
+                    if col_block == block:
+                        continue
 
-                    else:
-                        dx = 0
-                    self.knockback = 0
-                if block[0].colliderect(
-                    self.rect.x, self.rect.y + dy,
-                    self.rect.width, self.rect.height
-                ):
-                    # if self.vel_y <= 0:
-                    if block[0].bottom < self.rect.bottom:
-                        self.vel_y = 0
-                        dy = block[0].bottom - self.rect.top
-                        if self.atj and self.alive:
-                            self.kill()
+                    if (
+                        col_block[0].colliderect(
+                            b_rect.x + dx,
+                            b_rect.y,
+                            consts.TS,
+                            consts.TS,
+                        )
+                        or b_rect.x < 0
+                    ):
+                        x_collide = True
 
-                    else:
-                        if block[2] == "falling":
-                            block[3]["state"] = "fall"
+                if x_collide:
+                    dx = 0
 
-                        self.vel_y = 0
-                        now_on_ground = True
-                        self.atj = True
-                        dy = block[0].top - self.rect.bottom
-                        self.rotating = False
-                        self.rotation = 0
+                b_props["dx"] += dx
 
-                    # cam.x += 300
+            if b_rect.colliderect(
+                (self.rect.x, self.rect.y + dy),
+                (self.rect.width, self.rect.height),
+            ):
+                # if self.vel_y <= 0:
+                if b_rect.bottom < self.rect.bottom:
+                    self.vel_y = 0
+                    dy = b_rect.bottom - self.rect.top
+                    if self.able_to_jump and self.alive:
+                        self.kill()
+
+                else:
+                    if b_name == "falling":
+                        b_props["state"] = "fall"
+
+                    self.vel_y = 0
+                    self.able_to_jump = True
+                    dy = b_rect.top - self.rect.bottom
+                    self.rotating = False
+                    self.rotation = 0
 
         if abs(self.vel_y) >= 5:
-            self.atj = False
+            self.able_to_jump = False
 
         self.rect.x += dx
         self.rect.y += dy
 
-        if not now_on_ground:
-            self.vel_y += consts.GRAVITY
+    def stop(self):
+        self.vel_y = 0
+        self.jump = False
+        self.left = False
+        self.right = False
+        self.knockback = 0
 
     def kill(self):
         if not self.alive:
             return
 
-        asset_manager.get_sound("enemy_hit.wav").play()
+        asset_manager.play_sound("enemy_hit.wav")
         self.alive = False
         self.vel_y = -12
+        self.deaths += 1
 
     def respawn(self):
         self.alive = True
@@ -324,21 +318,23 @@ class Player:
 
     def velrect(self):
         return pg.Rect(
-            self.rect.x, self.rect.y + self.vel_y,
-            self.rect.width, self.rect.height
+            (self.rect.x, self.rect.y + self.vel_y),
+            (self.rect.width, self.rect.height),
         )
 
     def draw(self):
-        c_img = self.images[self.frame_index-1]
+        c_img = self.images[self.frame_index - 1]
+
         if self.rect.bottom < 0:
             fallpos_image = c_img.copy()
             fallpos_image.set_alpha(80)
             screen.blit(
                 pg.transform.flip(fallpos_image, self.flip, False),
-                (self.rect.x + cam.x, 30)
+                (self.rect.x + game.camera.x, 30),
             )
+            return
 
-        if game.flip_when_jump:
+        if config.flip_when_jump:
             img_to_blit = pg.transform.rotate(c_img, self.rotation)
 
         else:
@@ -353,136 +349,97 @@ class Player:
         #     flipped = flip_ver(flipped, True)
 
         rect = flipped.get_rect()
-        rect.centerx = self.rect.centerx + cam.x
-        rect.centery = self.rect.centery + cam.y
+        rect.centerx = self.rect.centerx + game.camera.x
+        rect.centery = self.rect.centery + game.camera.y
         screen.blit(flipped, rect)
 
 
-solid_blocks = ["grass", "dirt", "shooter", "box", "falling"]
-moving_blocks = ["moving", "enemy"]
+def update_bullet(bullet: list[Vec]):
+    bullet[0] += 7 * bullet[1]
+    bullet_rect = pg.Rect(bullet[0].x - 10, bullet[0].y - 10, 20, 20)
 
-collideblocks = []
-reset_blocks = []
+    for player in game.players:
+        if player.rect.colliderect(bullet_rect):
+            player.kill()
 
-blocks = []
-bg_blocks = []
-bullets = []
-lasers = []
+    if consts.COL * consts.TS < bullet[0].x < 0:
+        bullets.remove(bullet)
+        return
 
+    for block in blocks:
+        if block[2] in ["aimbot", "shooter"]:
+            continue
 
-def draw_bullets():
-    for b in bullets:
-        if -cam.x-100 < b[0][0] < -cam.x+100+consts.W:
-            pg.draw.circle(screen, (0, 0, 255),
-                           (b[0][0]+cam.x, b[0][1]+cam.y), 10)
-
-
-def update_bullets():
-    for b in bullets:
-        b[0][0] += 7 * b[1]
-        b[0][1] += 7 * b[2]
-        for p in players:
-            if p.rect.colliderect(b[0][0]-10, b[0][1]-10, 20, 20):
-                p.kill()
-                # p.deaths += 1
-                # game_over(f"P{p.num} was pierced by a bullet")
-
-        if consts.COL*consts.TS < b[0][0] < 0:
-            bullets.remove(b)
-        for block in collideblocks:
-            if (
-                block[2] not in ["shooter", "aimbot"] and
-                block[0].colliderect(b[0][0]-10, b[0][1]-10, 20, 20)
-            ):
-                if b in bullets:
-                    bullets.remove(b)
-
-
-main_menu(screen, game)
-
-player1 = Player(1)
-player2 = Player(2)
-players = [player1]
-if game.players == 2:
-    players.append(player2)
-
-bg_lines = []
-for i in range(22):
-    i2 = i*4
-    e = consts.W/25
-    x = i2*e
-    bg_lines.append([[x-consts.H, 0], [x, consts.H]])
+        if block[0].colliderect(bullet_rect):
+            bullets.remove(bullet)
+            return
 
 
 def draw_bg_lines():
-    bg_c = consts.bg_color
-    color = (bg_c[0]+7, bg_c[1]+7, bg_c[2]+10)
-    camx = cam.x*0.5
-    camy = cam.y*0.5
+    color = (
+        consts.GAME_BG_COLOR[0] + 4,
+        consts.GAME_BG_COLOR[1] + 4,
+        consts.GAME_BG_COLOR[2] + 7,
+    )
+    camx = game.camera.x * 0.5
+    camy = game.camera.y * 0.5
     for line in bg_lines:
-        if -camx-consts.W-consts.H < line[0][0]-consts.W < -camx:
+        if -camx - consts.W - consts.H < line[0][0] - consts.W < -camx:
             pg.draw.line(
-                screen, color,
-                (line[0][0]+camx, line[0][1]+camy),
-                (line[1][0]+camx, line[1][1]+camy),
-                40
+                screen,
+                color,
+                (line[0][0] + camx, line[0][1] + camy),
+                (line[1][0] + camx, line[1][1] + camy),
+                40,
             )
 
 
 def add_block(x, y, name, properties={}):
     img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()
 
-    h = 1
     w = 2 if name == "moving" else 1
-
-    image = pg.transform.scale(img, (consts.TS*w, consts.TS*h))
+    image = pg.transform.scale(img, (consts.TS * w, consts.TS))
 
     rect = image.get_rect()
-    rect.topleft = x*consts.TS, y*consts.TS
+    rect.topleft = x * consts.TS, y * consts.TS
     block = [rect, image, name, properties]
     blocks.append(block)
 
-    if name in solid_blocks or name in ["moving", "falling", "box"]:
-        collideblocks.append(block)
 
+def load_level(num: int | None = None, reload=False):
+    if num is not None:
+        game.current_level = num
 
-def load_level(num, reload=False):
-    if reload:
-        for p in players:
-            p.rect.topleft = game.respawn_point
+    file_name = f"assets/levels/{game.current_level}.txt"
 
-    if not exists(file_name):
+    if not os.path.exists(file_name):
         level = menu.level_selection(screen)
         load_level(level)
         return
 
+    with open(file_name, "r") as f:
+        tilemap = f.readlines()
+
+    for player in game.players:
+        if reload:
+            player.rect.topleft = game.respawn_point
+        else:
+            player.deaths = 0
+
     blocks.clear()
     bullets.clear()
-    collideblocks.clear()
-    if not reload:
-        bg_blocks.clear()
-    fileName = f"assets/levels/{num}.txt"
-
-    try:
-        with open(fileName, "r") as f:
-            tilemap = f.readlines()
-    except Exception:
-        load_level(1, reload)
-        return
-
     lasers.clear()
 
-    # place blocks
     for i, row in enumerate(tilemap):
         for j, col in enumerate(row):
             if col == ".":
                 continue
 
             if col == "P" and not reload:
-                game.stop_player_move = True
-                game.respawn_point = j*consts.TS, i*consts.TS
-                for p in players:
-                    p.rect.topleft = game.respawn_point
+                game.respawn_point = (j * consts.TS, i * consts.TS)
+                for player in game.players:
+                    player.rect.topleft = game.respawn_point
+                    player.stop()
 
             elif col == "B":
                 add_block(j, i, "box", {"vel_y": 0, "dx": 0})
@@ -493,100 +450,73 @@ def load_level(num, reload=False):
             elif col == "T":
                 add_block(j, i, "trampoline")
             elif col == "m":
-                add_block(j, i, "moving",  {"speed": 3, "direction": 1})
+                add_block(j, i, "moving", {"speed": 3, "direction": 1})
             elif col == "e":
-                add_block(j, i, "enemy", {
-                    "speed": 3,
-                    "direction": 1,
-                    "cd": 0,
-                    "frame_index": 0
-                })
+                props = {"speed": 3, "direction": 1, "cd": 0, "frame_index": 0}
+                add_block(j, i, "enemy", props)
             elif col == "s":
                 add_block(j, i, "shooter", {"cooldown": 12})
-
             elif col == "a":
                 add_block(j, i, "aimbot", {"cd": 12, "d": [1, 1]})
-
             elif col == "-":
-                lasers.append([
-                    [j*consts.TS, i*consts.TS+30],
-                    [(j+1)*consts.TS, i*consts.TS+30]
-                ])
-
+                lasers.append(
+                    [
+                        [j * consts.TS, i * consts.TS + 30],
+                        [(j + 1) * consts.TS, i * consts.TS + 30],
+                    ]
+                )
             elif col == "g":
                 add_block(j, i, "grass")
             elif col == "d":
                 add_block(j, i, "dirt")
             elif col == "f":
-                add_block(j, i, "falling", {
+                props = {
                     "vel_y": 0,
                     "state": "fly",
-                    "pos": i*consts.TS,
-                    "cd": 0
-                })
+                    "pos": i * consts.TS,
+                    "cd": 0,
+                }
+                add_block(j, i, "falling", props)
             elif col == "c":
                 add_block(j, i, "checkpoint", {"status": "inactive"})
 
+def draw_block(block):
+    rect, img, name, props = block
 
-def draw_blocks():
-    def on_screen(x):
-        return -cam.x - 100 < x < -cam.x + 100 + consts.W
+    if not game.camera.on_screen(rect):
+        return
 
-    for b in blocks:
-        if not on_screen(b[0].centerx):
-            continue
+    if name == "enemy":
+        props["cd"] += 1
+        if props["cd"] > 30:
+            props["cd"] = 0
+            props["frame_index"] += 1
+            props["frame_index"] %= 2
 
-        if b[2] == "enemy":
-            b[3]["cd"] += 1
-            if b[3]["cd"] > 20:
-                if b[3]["frame_index"] == 0:
-                    b[3]["frame_index"] = 1
-                else:
-                    b[3]["frame_index"] = 0
+        n = props["frame_index"] + 1
+        img = asset_manager.get_image(f"blocks/enemy/{n}.png")
+        img = pg.transform.scale(img, (consts.TS, consts.TS))
 
-                i = b[3]["frame_index"] + 1
-                img = asset_manager.get_image(f"blocks/enemy/{i}.png")
-                b[1] = pg.transform.scale(img, (consts.TS, consts.TS))
-                b[3]["cd"] = 0
+    elif "checkpoint" == name:
+        status = props["status"]
+        img = asset_manager.get_image(f"blocks/checkpoint/{status}.png")
+        img = pg.transform.scale(img, (consts.TS, consts.TS))
 
-        elif b[2] == "checkpoint":
-            s = b[3]["status"]
-            img = asset_manager.get_image(f"blocks/checkpoint/{s}.png")
-            b[1] = pg.transform.scale(img, (consts.TS, consts.TS))
-
-        screen.blit(b[1], (b[0][0] + cam.x, b[0][1]+cam.y))
-
-    for bg_b in bg_blocks:
-        if not on_screen(bg_b[0].centerx):
-            continue
-
-        screen.blit(
-            bg_b[1],
-            (bg_b[0][0] + cam.x, bg_b[0][1]+cam.y),
-            special_flags=pg.BLEND_ALPHA_SDL2
-        )
-
-
-def update_blocks():
-    for block in blocks:
-        update_block(block)
-
-    for block in blocks:
-        if block[2] == "box":
-            block[3]["dx"] = 0
+    dest = (rect.x + game.camera.x, rect.y + game.camera.y)
+    screen.blit(img, dest)
 
 
 def update_block(block):
     rect, _, name, props = block
-    if name in moving_blocks:
+    if name in consts.MOVING_BLOCKS:
         # can the enemy walk forward (able to move)
-        atm = False
+        able_to_move = False
         rect.x += props["speed"] * props["direction"]
         for s_block in blocks:
-            if (
-                s_block == block or
-                s_block[2] not in (solid_blocks + ["enemy", "moving"]) or
-                s_block[2] == "falling"
+            if not (
+                s_block != block
+                and s_block[2] in (consts.SOLID_BLOCKS + ["enemy", "moving"])
+                and s_block[2] != "falling"
             ):
                 continue
 
@@ -595,71 +525,67 @@ def update_block(block):
 
             if name == "enemy":
                 if s_block[0].collidepoint(
-                    rect.centerx + 20*props["direction"],
-                    rect.bottom + 10
+                    rect.centerx + 20 * props["direction"], rect.bottom + 10
                 ):
-                    atm = True
+                    able_to_move = True
 
         if name == "enemy":
-            if not atm:
+            if not able_to_move:
                 props["direction"] *= -1
 
-            for p in players:
-                if not (p.alive and rect.colliderect(p.velrect())):
+            for player in game.players:
+                if not (player.alive and player.velrect().colliderect(rect)):
                     continue
 
-                if p.vel_y > 1:
-                    p.vel_y = -10
-                    p.rotating = True
-                    asset_manager.get_sound("enemy_hit.wav").play()
+                if player.vel_y > 1:
+                    player.vel_y = -10
+                    player.rotating = True
+                    asset_manager.play_sound("enemy_hit.wav")
 
                     if block in blocks:
                         blocks.remove(block)
 
                 else:
-                    p.kill()
+                    player.kill()
 
     elif name == "shooter":
         props["cooldown"] -= 1
 
-        if (
-            props["cooldown"] <= 0 and
-            (-cam.x-100 < rect.centerx < -cam.x+100+consts.W)
+        if props["cooldown"] <= 0 and (
+            -game.camera.x - 100 < rect.centerx < -game.camera.x + 100 + consts.W
         ):
-            bullets.append([list(rect.center),  1, 0])
-            bullets.append([list(rect.center), -1, 0])
+            bullets.append([Vec(rect.center), Vec(1, 0)])
+            bullets.append([Vec(rect.center), Vec(-1, 0)])
             props["cooldown"] = 120
-            asset_manager.get_sound("shoot.wav").play()
+            asset_manager.play_sound("shoot.wav")
 
     elif name == "aimbot":
         props["cd"] -= 1
         if props["cd"] > 0:
             return
 
-        alive_players = [ p for p in players if p.alive ]
+        alive_players = [p for p in game.players if p.alive]
 
         if not alive_players:
             return
 
         target = random.choice(alive_players).rect
 
-        dx = target.centerx - rect.centerx
-        dy = target.centery - rect.centery
-        dist = hypot(dx, dy)
+        diff = Vec(target.center) - rect.center
+        dist = hypot(diff.x, diff.y)
 
-        if not 0 < dist < 500:
+        if dist > consts.TS * 9:
             return
 
-        for b in collideblocks:
+        for b in blocks:
             if b[0].clipline(target.center, rect.center):
                 return
 
-        vx = dx / dist
-        vy = dy / dist
+        vel = diff / dist
 
-        bullets.append([list(rect.center), vx, vy])
-        props["cd"] = 70
-        asset_manager.get_sound("shoot.wav").play()
+        bullets.append([Vec(rect.center), vel])
+        props["cd"] = 1.0 * consts.FPS
+        asset_manager.play_sound("shoot.wav")
 
     elif name == "falling":
         if props["state"] == "fall":
@@ -668,117 +594,104 @@ def update_block(block):
             else:
                 props["vel_y"] += consts.GRAVITY
                 rect.y += props["vel_y"]
-                if rect.y > props["pos"] + 1500:
+                if rect.y > props["pos"] + 25 * consts.TS:
                     props["state"] = "fly"
 
         elif props["state"] == "fly":
-            props["cd"] = 12
+            props["cd"] = 0.2 * consts.FPS
             props["vel_y"] = 0
             rect.y = props["pos"]
 
     elif name == "trampoline":
-        for p in players:
-            if not p.alive or p.vel_y < 1:
+        for player in game.players:
+            if not player.alive or player.able_to_jump:
                 continue
 
             p_rect = pg.Rect(
-                p.rect.x, p.rect.y + p.vel_y,
-                p.rect.width, p.rect.height
+                player.rect.x,
+                player.rect.y,
+                player.rect.width,
+                player.rect.height,
             )
 
             block_hitbox = pg.Rect(
-                rect.x, rect.y + (consts.TS * 0.4),
-                rect.width, rect.height - (consts.TS * 0.4)
+                rect.x,
+                rect.y + (consts.TS * 0.4),
+                rect.width,
+                rect.height - (consts.TS * 0.4),
             )
 
             if p_rect.colliderect(block_hitbox):
-                p.vel_y = consts.TRAMPOLINE_VEL
-                asset_manager.get_sound("trampoline.wav").play()
-                p.rotating = True
+                player.vel_y = consts.TRAMPOLINE_VEL
+                asset_manager.play_sound("trampoline.wav")
+                player.rotating = True
 
     elif name == "checkpoint":
         if props["status"] == "active":
             return
 
-        for p in players:
-            if not p.rect.colliderect(rect):
+        for player in game.players:
+            if not (player.alive and player.rect.colliderect(rect)):
                 continue
 
-            asset_manager.get_sound("checkpoint.wav").play()
+            asset_manager.play_sound("checkpoint.wav")
             props["status"] = "active"
             game.respawn_point = rect.topleft
 
     elif name == "box":
         props["vel_y"] += consts.GRAVITY
-        for col_b in blocks:
-            if block == col_b or not col_b[0].colliderect(
-                rect.x,
-                rect.y + props["vel_y"],
-                consts.TS,
-                consts.TS
-            ):
+        vel_rect = pg.Rect(
+            rect.x, rect.y + props["vel_y"],
+            consts.TS, consts.TS
+        )
+        for other in blocks:
+            o_rect, _, o_name, _ = other
+            if not (block != other and o_rect.colliderect(vel_rect)):
                 continue
 
-            if col_b[2] == "enemy" and props["vel_y"] > 2:
+            if o_name == "enemy" and props["vel_y"] > 2:
                 props["vel_y"] = -6
-                asset_manager.get_sound("enemy_hit.wav").play()
-                if col_b in blocks:
-                    blocks.remove(col_b)
+                asset_manager.play_sound("enemy_hit.wav")
+                if other in blocks:
+                    blocks.remove(other)
 
-            elif col_b[2] in solid_blocks:
-                # if col_b[2] == "box":
-                #     block[3]["dx"] == col_b[3]["dx"]
-                #     update_block(col_b)
+            elif o_name in consts.SOLID_BLOCKS:
                 props["vel_y"] = 0
 
-            elif col_b[2] == "trampoline":
+            elif o_name == "trampoline":
                 props["vel_y"] = consts.TRAMPOLINE_VEL
 
-        for player in players:
-            if not player.alive or props["vel_y"] < 2:
+        for player in game.players:
+            if not (player.alive and props["vel_y"] > 2):
                 continue
 
-            if player.rect.colliderect(
-                rect.x,
-                rect.y + props["vel_y"],
-                consts.TS,
-                consts.TS
-            ):
+            if player.rect.colliderect(vel_rect):
                 props["vel_y"] = -6
                 player.kill()
 
         rect.y += props["vel_y"]
         rect.x += props["dx"]
-        # block[3]["dx"] = 0
+        props["dx"] = 0
 
     elif name == "flag":
-        collision = rect.colliderect(player1.rect)
+        for player in game.players:
+            if rect.colliderect(player.rect):
+                break
+        else:
+            return
 
-        if game.players == 2:
-            collision &= rect.colliderect(player2.rect)
+        asset_manager.play_sound("level_completed.wav")
 
-        if collision:
-            asset_manager.get_sound("level_completed.wav").play()
-            game.level += 1
+        for player in game.players:
+            player.stop()
 
-            game.stop_player_move = True
-            load_level(game.level)
+        load_level(game.current_level + 1)
 
     elif name == "spike":
-        for player in players:
-            if not player.alive or player.vel_y < 2:
-                continue
-
-            if player.velrect().colliderect(
-                rect.x,
-                rect.y + (rect.height / 2),
-                rect.width,
-                rect.height / 2
-            ):
+        rect = pg.Rect(rect.x, rect.y + (rect.height / 2), rect.width, rect.height / 2)
+        for player in game.players:
+            if player.alive and player.velrect().colliderect(rect):
                 player.kill()
-                # p.deaths += 1
-                # p.explode()
-                # game_over(f"P{p.num} jumped into a spike")
 
 
 def draw():
@@ -876,8 +789,6 @@ if __name__ == "__main__":
 
     asset_manager.load_player_imgs()
     asset_manager.set_audio_volume(config.audio_volume)
-    solid_blocks = ["grass", "dirt", "shooter", "falling", "moving", "box", "enemy"]
-    moving_blocks = ["moving", "enemy"]
 
     blocks = []
     bullets = []

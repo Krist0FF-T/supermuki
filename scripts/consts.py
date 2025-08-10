@@ -1,25 +1,26 @@
 import pygame as pg
 
+clock = pg.time.Clock()
+FPS = 60
+W, H = (1280, 720)
+CX, CY = (W // 2, H // 2)
+
 GRAVITY = 0.6
-TRAMPOLINE_VEL = -20
 PLAYER_SPEED = 7
-TS = 60
+JUMP_VEL = -10
+TRAMPOLINE_VEL = -20
+
 COL = 44
 ROW = 12
-W, H = (1280, 720)
-CX, CY = (W//2, H//2)
-FPS = 60
-clock = pg.time.Clock()
+BULLET_SPEED = 7
+BULLET_R = 10
+TS = 60
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
-LBLUE = (60, 120, 255)
-DBLUE = (0, 0, 180)
-GREEN = (0, 255, 0)
-DGREEN = (0, 200, 0)
+SOLID_BLOCKS = ["grass", "dirt", "shooter", "falling", "moving", "box", "enemy"]
+MOVING_BLOCKS = ["moving", "enemy"]
 
-bg_color = 100, 180, 240
+GAME_BG_COLOR = (100, 180, 240)
+GUI_BG_COLOR = (50, 50, 50)
 
-FONT_NAME = 'fffforwa.ttf'
+FONT = "assets/fonts/fffforwa.ttf"
+

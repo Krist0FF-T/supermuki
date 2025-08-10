@@ -11,15 +11,8 @@ def green_button(b_surf, b_rect, pos):
             b_surf.fill((50, 50, 50))
 
 
-def colored_b(b_surf, b_rect, color, pos):
-    b_surf.fill(color)
-    if b_rect.collidepoint(pos):
-        b_surf.fill((120, 120, 120))
-
 # Button class
-
-
-class Button(pg.sprite.Sprite):
+class Button:
     def __init__(self, x, y, image, scale):
         img = asset_manager.get_image("button/" + image)
         self.image = pg.transform.scale(
