@@ -16,7 +16,7 @@ BULLET_SPEED = 7
 BULLET_R = 10
 TS = 60
 
-SOLID_BLOCKS = ["grass", "dirt", "shooter", "falling", "moving", "box", "enemy"]
+SOLID_BLOCKS = ["grass", "dirt", "falling", "moving", "box", "enemy"]
 MOVING_BLOCKS = ["moving", "enemy"]
 
 GAME_BG_COLOR = (100, 180, 240)
