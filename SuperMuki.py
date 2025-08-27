@@ -367,10 +367,10 @@ def update_bullet(bullet: list[Vec]):
         return
 
     for block in blocks:
-        if block[2] in ["aimbot", "shooter"]:
-            continue
-
-        if block[0].colliderect(bullet_rect):
+        if (
+            block[2] in consts.SOLID_BLOCKS
+            and block[0].colliderect(bullet_rect)
+        ):
             bullets.remove(bullet)
             return
 
@@ -578,7 +578,10 @@ def update_block(block):
             return
 
         for b in blocks:
-            if b[0].clipline(target.center, rect.center):
+            if (
+                b[2] in consts.SOLID_BLOCKS
+                and b[0].clipline(target.center, rect.center)
+            ):
                 return
 
         vel = diff / dist
