@@ -11,8 +11,13 @@ def level_selection(surf: pg.Surface) -> int | None:
     selecting_level = True
     while selecting_level:
         consts.clock.tick(60)
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                util.close()
+
         surf.fill(consts.GUI_BG_COLOR)
-        pos = pg.mouse.get_pos()
+        mouse_pos = pg.mouse.get_pos()
 
         for i in range(b_cols):
             for y in range(b_rows):
@@ -27,9 +32,9 @@ def level_selection(surf: pg.Surface) -> int | None:
                 ))
 
                 option_s.fill("green")
-                if option_r.collidepoint(pos):
+                if option_r.collidepoint(mouse_pos):
                     option_s.fill((120, 255, 120))
-                    if pg.mouse.get_just_released()[0]:
+                    if pg.mouse.get_just_pressed()[0]:
                         option_s.fill((50, 50, 50))
                         return num
 
@@ -45,6 +50,3 @@ def level_selection(surf: pg.Surface) -> int | None:
 
         pg.display.update()
 
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                util.close()

@@ -23,7 +23,7 @@ def pause_menu(surf) -> int | None:
                 if event.key == pg.K_ESCAPE or event.key == pg.K_c:
                     paused = False
 
-            elif event.type == pg.MOUSEBUTTONUP:
+            elif event.type == pg.MOUSEBUTTONDOWN:
                 if resume_r.collidepoint(mpos):
                     paused = False
                 if quit_r.collidepoint(mpos):

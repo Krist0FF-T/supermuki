@@ -76,3 +76,13 @@
 # 2025-08-10
 - git: commit changes since 2025-06-29
 - move screenshots out of repo - use GitHub assets instead
+
+# 2025-08-11 - _
+- move main loop into `Game`
+
+# 2025-10- _
+
+# 2026-01-03
+- move global game functions (updating and rendering logic) into `Game`
+
+

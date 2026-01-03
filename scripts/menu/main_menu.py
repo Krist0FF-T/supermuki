@@ -55,7 +55,7 @@ def main_menu(surf) -> int:
                 if event.key == pg.K_2:
                     return 2
 
-            if event.type == pg.MOUSEBUTTONUP:
+            if event.type == pg.MOUSEBUTTONDOWN:
                 if b1_r.collidepoint(pos):
                     return 1
                 if b2_r.collidepoint(pos):

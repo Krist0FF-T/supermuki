@@ -27,8 +27,9 @@ def color_selection(surf: pg.Surface, colors: list[list]):
     while c_s:
         consts.clock.tick(consts.FPS)
 
-        pos = pg.mouse.get_pos()
-        for event in pg.event.get():
+        events = pg.event.get()
+        mouse_pos = pg.mouse.get_pos()
+        for event in events:
             if event.type == pg.QUIT:
                 util.close()
             if event.type == pg.KEYDOWN:
@@ -36,18 +37,18 @@ def color_selection(surf: pg.Surface, colors: list[list]):
                     c_s = False
 
             if event.type == pg.MOUSEBUTTONDOWN:
-                if button.confirm_c.rect.collidepoint(pos):
+                if button.confirm_c.rect.collidepoint(mouse_pos):
                     c_s = False
 
-        if pg.mouse.get_pressed()[0]:
+        if pg.mouse.get_just_pressed()[0]:
             for bu in c_b1:
                 if pg.Rect(
                     bu.rect.x - 25,
                     bu.rect.y - 25,
                     bu.rect.width + 50,
                     bu.rect.height + 50,
-                ).collidepoint(pos):
-                    bu.rect.centerx = pos[0]
+                ).collidepoint(mouse_pos):
+                    bu.rect.centerx = mouse_pos[0]
                 if bu.rect.left < 200:
                     bu.rect.left = 200
                 if bu.rect.right > 450:
@@ -60,8 +61,8 @@ def color_selection(surf: pg.Surface, colors: list[list]):
                         bu.rect.y - 20,
                         bu.rect.width + 40,
                         bu.rect.height + 40,
-                    ).collidepoint(pos):
-                        bu.rect.centerx = pos[0]
+                    ).collidepoint(mouse_pos):
+                        bu.rect.centerx = mouse_pos[0]
 
                     if bu.rect.left < consts.W - 450:
                         bu.rect.left = consts.W - 450
@@ -71,7 +72,7 @@ def color_selection(surf: pg.Surface, colors: list[list]):
 
         surf.fill(consts.GUI_BG_COLOR)
         # button.colored_b(confirm_s, confirm_r, (80, 80, 80), pos)
-        button.green_button(confirm_s, confirm_r, pos)
+        button.green_button(confirm_s, confirm_r, mouse_pos)
         surf.blit(confirm_s, confirm_r)
         util.draw_text(
             surf,

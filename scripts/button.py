@@ -7,8 +7,6 @@ def green_button(b_surf, b_rect, pos):
     b_surf.fill((0, 255, 0))
     if b_rect.collidepoint(pos):
         b_surf.fill((0, 180, 0))
-        if pg.mouse.get_pressed()[0]:
-            b_surf.fill((50, 50, 50))
 
 
 # Button class

@@ -19,14 +19,14 @@ def block_selection() -> int | None:
     e = True
     while e:
         consts.clock.tick(consts.FPS)
+
         events = pg.event.get()
         mouse_pos = pg.mouse.get_pos()
-
-        for ev in events:
-            if ev.type == pg.QUIT:
+        for event in events:
+            if event.type == pg.QUIT:
                 util.close()
-            if ev.type == pg.KEYDOWN:
-                if ev.key == pg.K_ESCAPE:
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
                     return None
 
         screen.fill(consts.GUI_BG_COLOR)
@@ -38,7 +38,7 @@ def block_selection() -> int | None:
 
             screen.blit(img, (r.x, r.y))
             if r.collidepoint(mouse_pos):
-                if pg.mouse.get_pressed()[0]:
+                if pg.mouse.get_just_pressed()[0]:
                     return i
 
         util.draw_text(
