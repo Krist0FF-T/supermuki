@@ -84,5 +84,6 @@
 
 # 2026-01-03
 - move global game functions (updating and rendering logic) into `Game`
+- break main file up by classes into player.py, camera.py and game.py
 
 
