@@ -7,7 +7,6 @@ def block_image(name):
     img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()
     w = 2 if name == "moving" else 1
     img = pg.transform.scale(img, (consts.TS * w, consts.TS))
-    # b_imgs.update({name: img})
     return img
 
 def save_txt():
@@ -26,13 +25,13 @@ def block_selection() -> int | None:
             if event.type == pg.QUIT:
                 util.close()
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
+                if event.key == pg.K_e:
                     return None
 
         screen.fill(consts.GUI_BG_COLOR)
 
         for i, letter in enumerate(block_letters):
-            img = b_imgs[letter_to_name[letter]]
+            img = block_image(letter_to_name[letter])
             img = pg.transform.scale(img, (consts.TS, consts.TS))
             r = pg.Rect(i * 80 + 100, 400, consts.TS, consts.TS)
 
@@ -55,15 +54,10 @@ def block_selection() -> int | None:
 
     return None
 
-pg.font.init()
-screen = pg.display.set_mode((consts.W, consts.H))
-pg.display.set_caption('MapMaker for Dungeon')
+pg.init()
 
-block_names = [
-    'aimbot', 'box', 'checkpoint', 'dirt', 'enemy',
-    'falling', 'flag', 'grass', 'laser', 'moving',
-    'playerpos', 'shooter', 'spike', 'trampoline'
-]
+screen = pg.display.set_mode((consts.W, consts.H))
+pg.display.set_caption("supermuki level editor")
 
 letter_to_name = {
     "a": "aimbot",
@@ -82,52 +76,51 @@ letter_to_name = {
     "T": "trampoline",
 }
 
-block_letters = ['a', 'B', 'c', 'd', 'e', 'f', 'G', 'g', '-', 'm', 'P', 's', 'S', 'T']
-
-b_imgs = {}
-
-# for bn in b_names:
-#     new_block_image(bn)
-
-n = menu.level_selection(screen)
-f_name = f'assets/levels/{n}.txt'
-
-blocks = []
-try:
-    with open(f_name, 'r') as f:
-        lines = f.readlines()
-        # blocks = [
-        #     [
-        #         block
-        #         for block in row
-        #     ]
-        #     for row in lines
-        # ]
-        # print(lines)
-        for y, row in enumerate(lines):
-            therow = []
-            for x, col in enumerate(row):
-                therow.append(col)
-            blocks.append(therow)
-
-except Exception:
-    for y in range(consts.ROW):
-        row = []
-        for x in range(consts.COL):
-            row.append('.')
-        row.append('\n')
-        blocks.append(row)
+block_letters = list(letter_to_name.keys())
+block_names = letter_to_name.values()
 
 
+def load_level(level_number) -> list:
+    f_name = f'assets/levels/{level_number}.txt'
+
+    blocks = []
+    try:
+        with open(f_name, 'r') as f:
+            lines = f.readlines()
+            # TODO: exclude '\n'
+            blocks = [
+                [ block for block in row ]
+                for row in lines
+            ]
+            # print(blocks)
+
+    except Exception:
+        for y in range(consts.ROW):
+            row = []
+            for x in range(consts.COL):
+                row.append('.')
+            row.append('\n')
+            blocks.append(row)
+
+    return blocks
+
+
+level_number = menu.level_selection(screen)
+blocks = load_level(level_number)
+
+# camera's x position
 scroll = 0
+
+# TODO: don't have 2 variables for this
 sel_letter = 'g'
 sel_num = 0
 
-grid = False
+show_grid = False
 
 run = True
 while run:
     consts.clock.tick(consts.FPS)
+
     events = pg.event.get()
     mouse_pos = pg.mouse.get_pos()
     mouse_btn = pg.mouse.get_pressed()
@@ -166,14 +159,14 @@ while run:
             if ev.key == pg.K_ESCAPE:
                 util.close()
 
-            elif ev.key == pg.K_SPACE:
+            elif ev.key == pg.K_e:
                 n = block_selection()
                 if n is not None:
                     sel_num = n
                     sel_letter = block_letters[n]
 
             elif ev.key == pg.K_g:
-                grid = not grid
+                show_grid = not show_grid
 
             elif ev.key == pg.K_x:
                 e = blocks[sel_pos[1]][sel_pos[0]]
@@ -201,20 +194,18 @@ while run:
         for x, col in enumerate(row):
             if col in block_letters and -scroll-consts.TS < x*consts.TS < -scroll+consts.W:
                 img = block_image(letter_to_name[col])
-                # img = b_imgs[letter_to_name[col]]
                 screen.blit(img, (x*consts.TS+scroll, y*consts.TS))
 
+    # TODO: show for visible columns instead of first 21
     for x in range(1, 21):
-        if not grid:
+        if not show_grid:
             break
         for y in range(1, consts.ROW):
-            # tx = (x - scroll / consts.TS) * consts.TS + scroll
             tx = x * consts.TS + scroll
             ty = y * consts.TS
             pg.draw.line(screen, "black", (tx, 0), (tx, consts.H))
             pg.draw.line(screen, "black", (0, ty), (consts.W, ty))
 
-    # e = b_imgs[letter_to_name[sel_letter]].copy()
     e = block_image(letter_to_name[sel_letter])
     e.set_alpha(80)
     screen.blit(e, (sel_pos[0] * consts.TS + scroll, sel_pos[1] * consts.TS))
@@ -222,5 +213,4 @@ while run:
     util.draw_text(screen, False, 30, f'{sel_pos[0]};{sel_pos[1]}', "white", 20, 20)
 
     pg.display.update()
-
 
