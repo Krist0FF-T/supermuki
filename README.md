@@ -1,7 +1,7 @@
 # SuperMuki
-A simple 2D platformer game I wrote in February 2022.
+A 2D platformer game I wrote mainly in February 2022. Small modifications were made since then, most of which are visually unnoticeable.
 
-Small modifications were made since then (most of which are visually unnoticeable). Am planning to create a separate branch for the original code (check [TODO](#todo) for more info).
+Contributions are welcome. Check the [todo list](./TODO.md) or search for "TODO:" in the code for things left to do.
 
 ## Screenshots and videos
 [YouTube playlist](https://youtube.com/playlist?list=PLgWb8hd3l5BeBjXKbJmbXhGqzh3PWVf91)
@@ -21,12 +21,3 @@ Small modifications were made since then (most of which are visually unnoticeabl
 
 </details>
 
-## TODO
-Create branches:
-- [ ] "simple": simplified version (1 player, 1 level, 0 menus, etc.): make it clean and good for education purposes (even a tutorial crosses my mind)
-- [ ] "original": without newer modifications since Feb. 2022.
-- [ ] "improved" (or main): with newer improvements
-
-For ease of installation:
-- [ ] installation steps in README
-- [ ] create tags and releases
