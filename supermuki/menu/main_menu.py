@@ -2,7 +2,7 @@ import pygame as pg
 from supermuki import button, consts, util
 
 
-def main_menu(surf) -> int:
+def main_menu(surf: pg.Surface) -> int:
     text1 = 'Super Muki'
     version = '1.5'
     selected = False

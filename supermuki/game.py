@@ -174,6 +174,9 @@ class Game:
             elif event.key == pg.K_r:
                 self.load_level(reload = not event.mod & pg.KMOD_LSHIFT)
 
+            elif event.key == pg.K_e:
+                menu.level_editor(self.screen, self.current_level)
+
             elif event.key == pg.K_F2:
                 util.screenshot()
                 self.pause()

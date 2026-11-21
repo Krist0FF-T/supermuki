@@ -1,0 +1,216 @@
+import pygame as pg
+
+from supermuki import consts, util, menu
+from supermuki.assets import asset_manager
+
+LEVEL_FILE = "assets/levels/%i.txt"
+
+def block_image(name: str) -> pg.Surface:
+    img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()
+    w = 2 if name == "moving" else 1
+    img = pg.transform.scale(img, (consts.TS * w, consts.TS))
+    return img
+
+def save_blocks(level_number: int, blocks: list):
+    f_name = LEVEL_FILE % level_number
+    with open(f_name, 'w') as f:
+        for row in blocks:
+            f.writelines(row)
+
+def block_selection(screen: pg.Surface) -> int | None:
+    e = True
+    while e:
+        consts.clock.tick(consts.FPS)
+
+        events = pg.event.get()
+        mouse_pos = pg.mouse.get_pos()
+        for event in events:
+            if event.type == pg.QUIT:
+                util.close()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_e:
+                    return None
+
+        screen.fill(consts.GUI_BG_COLOR)
+
+        for i, letter in enumerate(block_letters):
+            img = block_image(letter_to_name[letter])
+            img = pg.transform.scale(img, (consts.TS, consts.TS))
+            r = pg.Rect(i * 80 + 100, 400, consts.TS, consts.TS)
+
+            screen.blit(img, (r.x, r.y))
+            if r.collidepoint(mouse_pos):
+                if pg.mouse.get_just_pressed()[0]:
+                    return i
+
+        util.draw_text(
+            screen,
+            True,
+            40,
+            "block selection",
+            "white",
+            consts.CX,
+            100,
+        )
+
+        pg.display.update()
+
+    return None
+
+letter_to_name = {
+    "a": "aimbot",
+    "B": "box",
+    "c": "checkpoint",
+    "d": "dirt",
+    "e": "enemy",
+    "f": "falling",
+    "G": "flag",
+    "g": "grass",
+    "-": "laser",
+    "m": "moving",
+    "P": "playerpos",
+    "s": "shooter",
+    "S": "spike",
+    "T": "trampoline",
+}
+
+block_letters = list(letter_to_name.keys())
+block_names = letter_to_name.values()
+
+
+def load_level(level_number: int) -> list:
+    f_name = LEVEL_FILE % level_number
+
+    blocks = []
+    try:
+        with open(f_name, 'r') as f:
+            lines = f.readlines()
+            # TODO: exclude '\n'
+            blocks = [
+                [ block for block in row ]
+                for row in lines
+            ]
+            # print(blocks)
+
+    except Exception:
+        for y in range(consts.ROW):
+            row = []
+            for x in range(consts.COL):
+                row.append('.')
+            row.append('\n')
+            blocks.append(row)
+
+    return blocks
+
+
+def level_editor(screen: pg.Surface, level_number: int):
+    blocks = load_level(level_number)
+
+    # camera's x position
+    # TODO: use Game's camera
+    scroll = 0
+
+    # TODO: don't have 2 variables for this
+    sel_letter = 'g'
+    sel_num = 0
+
+    show_grid = False
+
+    run = True
+    while run:
+        consts.clock.tick(consts.FPS)
+
+        events = pg.event.get()
+        mouse_pos = pg.mouse.get_pos()
+        mouse_btn = pg.mouse.get_pressed()
+        keys = pg.key.get_pressed()
+
+        # --- update ---
+
+        sel_pos = [
+            int((mouse_pos[0] - scroll) / consts.TS),
+            int((mouse_pos[1]) / consts.TS),
+        ]
+
+        scroll += (
+            (keys[pg.K_LEFT] or keys[pg.K_a])
+            - (keys[pg.K_RIGHT] or keys[pg.K_d])
+        ) * 20
+
+        if scroll > 0:
+            scroll = 0
+
+        # TODO: don't hardcode this value
+        if scroll < -4720:
+            scroll = -4720
+
+        # left click: destroy
+        if mouse_btn[0]:
+            blocks[sel_pos[1]][sel_pos[0]] = '.'
+
+        # right click: place
+        if mouse_btn[2]:
+            blocks[sel_pos[1]][sel_pos[0]] = sel_letter
+
+        for ev in events:
+            if ev.type == pg.QUIT:
+                util.close()
+
+            elif ev.type == pg.KEYDOWN:
+                if ev.key in (pg.K_ESCAPE, pg.K_q):
+                    return
+
+                elif ev.key == pg.K_e:
+                    n = block_selection(screen)
+                    if n is not None:
+                        sel_num = n
+                        sel_letter = block_letters[n]
+
+                elif ev.key == pg.K_g:
+                    show_grid = not show_grid
+
+                elif ev.key == pg.K_x:
+                    e = blocks[sel_pos[1]][sel_pos[0]]
+                    if e in block_letters:
+                        sel_letter = e
+
+                elif ev.key == pg.K_s:
+                    save_blocks(level_number, blocks)
+
+                elif ev.key == pg.K_F11:
+                    pg.display.toggle_fullscreen()
+
+            elif ev.type == pg.MOUSEBUTTONDOWN:
+                d: int = (ev.button == 5) - (ev.button == 4)
+                if d != 0:
+                    sel_num = (sel_num + d) % len(block_letters)
+                    sel_letter = block_letters[sel_num]
+
+        # --- render ---
+
+        screen.fill(consts.GAME_BG_COLOR)
+
+        for y, row in enumerate(blocks):
+            for x, col in enumerate(row):
+                if col in block_letters and -scroll-consts.TS < x*consts.TS < -scroll+consts.W:
+                    img = block_image(letter_to_name[col])
+                    screen.blit(img, (x*consts.TS+scroll, y*consts.TS))
+
+        # TODO: show for visible columns instead of first 21
+        for x in range(1, 21):
+            if not show_grid:
+                break
+            for y in range(1, consts.ROW):
+                tx = x * consts.TS + scroll
+                ty = y * consts.TS
+                pg.draw.line(screen, "black", (tx, 0), (tx, consts.H))
+                pg.draw.line(screen, "black", (0, ty), (consts.W, ty))
+
+        e = block_image(letter_to_name[sel_letter])
+        e.set_alpha(80)
+        screen.blit(e, (sel_pos[0] * consts.TS + scroll, sel_pos[1] * consts.TS))
+
+        util.draw_text(screen, False, 30, f'{sel_pos[0]};{sel_pos[1]}', "white", 20, 20)
+
+        pg.display.update()
+

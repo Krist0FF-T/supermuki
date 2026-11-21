@@ -3,7 +3,7 @@ from supermuki import button, consts, util
 from . import code
 
 
-def pause_menu(surf) -> int | None:
+def pause_menu(surf: pg.Surface) -> int | None:
     resume_r = button.resume_button.rect
     resume_s = pg.Surface((resume_r.width, resume_r.height))
 
