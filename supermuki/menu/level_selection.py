@@ -1,5 +1,5 @@
 import pygame as pg
-from scripts import consts, util
+from supermuki import consts, util
 
 
 def level_selection(surf: pg.Surface) -> int | None:

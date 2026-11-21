@@ -2,8 +2,8 @@
 from typing import TYPE_CHECKING
 import pygame as pg
 
-from scripts import consts, util
-from scripts.assets import asset_manager
+from supermuki import consts, util
+from supermuki.assets import asset_manager
 import config
 
 if TYPE_CHECKING:

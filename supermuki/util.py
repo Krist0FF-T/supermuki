@@ -3,7 +3,7 @@ import os
 import sys
 import pygame as pg
 
-from .assets import asset_manager
+from supermuki.assets import asset_manager
 
 
 def recolor_player(color) -> list[pg.Surface]:

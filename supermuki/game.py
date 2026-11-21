@@ -1,16 +1,15 @@
+import os
+import random
+from math import hypot
 import pygame as pg
-from . import consts, util, menu
-import config
+from pygame import Vector2 as Vec
 
+from . import consts, util, menu
 from .camera import Camera
 from .player import Player
 from .assets import asset_manager
+import config
 
-import random
-import os
-from math import hypot
-
-from pygame import Vector2 as Vec
 
 class Game:
     def __init__(self):

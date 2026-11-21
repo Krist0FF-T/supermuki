@@ -1,6 +1,6 @@
 import pygame as pg
-from .assets import asset_manager
-from . import consts
+from supermuki.assets import asset_manager
+from supermuki import consts
 
 
 def green_button(b_surf, b_rect, pos):

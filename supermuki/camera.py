@@ -1,5 +1,5 @@
 import pygame as pg
-from . import consts
+from supermuki import consts
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

@@ -1,5 +1,5 @@
 import pygame as pg
-from scripts import button, consts, util
+from supermuki import button, consts, util
 from . import code
 
 

@@ -1,5 +1,5 @@
 import pygame as pg
-from scripts import consts, button, util
+from supermuki import consts, button, util
 
 def color_selection(surf: pg.Surface, colors: list[list]):
     two_players = len(colors) >= 2

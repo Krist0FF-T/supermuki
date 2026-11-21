@@ -1,7 +1,7 @@
 import pygame as pg
 
-from scripts import consts, util, menu
-from scripts.assets import asset_manager
+from supermuki import consts, util, menu
+from supermuki.assets import asset_manager
 
 def block_image(name):
     img = asset_manager.get_image(f"blocks/{name}.png").convert_alpha()

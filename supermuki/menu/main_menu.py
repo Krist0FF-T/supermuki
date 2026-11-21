@@ -1,5 +1,5 @@
 import pygame as pg
-from scripts import button, consts, util
+from supermuki import button, consts, util
 
 
 def main_menu(surf) -> int:

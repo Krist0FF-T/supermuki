@@ -1,5 +1,5 @@
 import pygame as pg
-from . import consts
+from supermuki import consts
 
 
 class AssetManager:
