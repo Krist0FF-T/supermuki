@@ -15,8 +15,6 @@ Todo:
 
 Fix:
 - box sometimes kills the player when pushed off the edge
-- player-enemy collision when they're going in the same direction
-    - (the player stays alive and moves slowly)
 
 Repo stuff:
 - create branches
